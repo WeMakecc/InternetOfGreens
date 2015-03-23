@@ -5,16 +5,24 @@
 #include <ArduinoJson.h>
 #include <EthernetUdp.h>
 
+/**********************************************************************************/
+
+#define DEBUG
+
+/**********************************************************************************/
+
 #define textBuffSize 500
-#define PhMeterPin A0            //pH meter Analog output to Arduino Analog Input 0
-#define Offset -0.26             //deviation compensate
-#define ArrayLenth  40           //times of collection
+#define PhMeterPin   A0            //pH meter Analog output to Arduino Analog Input 0
+#define Offset       -0.26         //deviation compensate
+#define ArrayLenth   40            //times of collection
+#define pinLamp1     22            // Relay right Light
+#define pinLamp2     23            // Relay left Light
+#define pinPump1     32            // Relay Pump 1
+#define pinPump2     33            // Relay Pump 2
+#define pinFert1     3             // elettrovalvola Fertilizzante
+#define pinValF1     2             // controllo valvola Fertilizzante
 
-
-byte pinLamp[10]  = {22,23,24,25,26,27,28,29,10,31};
-byte pinSenEC[10] = {44,45,46,47,48,49,50,51,52,53};
-byte pinPump1     = 2;
-byte pinFert1     = 3;
+/**********************************************************************************/
 
 const char*  LIGHT1= "5509b3d74ca0f61a7c9ced62"; // Accensione Luci  1 (Fragaria vesca) 
 const char*  LIGHT2= "5509b3d74ca0f61a7c9ced63"; // Accensione Luci  2 (Tropaeolum majus)
@@ -37,7 +45,7 @@ const char*  CO2SN1= "5509b3d74ca0f61a7c9ced71"; // CO2 ambiente (SmartCitizen)
 const char*  LIAMB1= "5509b3d74ca0f61a7c9ced73"; // Luce ambiente (SmartCitizen)
 const char*  HUMID1= "5509b3d74ca0f61a7c9ced74"; // Sensore umidità (SmartCitizen)
 const char*  SENEC1= "5509b3d74ca0f61a7c9ced82"; // Sensore EC 1  (Fragaria vesca)
-const char*  SANEC2= "5509b3d74ca0f61a7c9ced83"; // Sensore EC 2  (Tropaeolum majus) 
+const char*  SENEC2= "5509b3d74ca0f61a7c9ced83"; // Sensore EC 2  (Tropaeolum majus) 
 const char*  SENEC3= "5509b3d74ca0f61a7c9ced84"; // Sensore EC 3  (Ocimum basilicum)
 const char*  SENEC4= "5509b3d74ca0f61a7c9ced85"; // Sensore EC 4  (Lactuca sativa)
 const char*  SENEC5= "5509b3d74ca0f61a7c9ced86"; // Sensore EC 5  (Lactuca sativa var. foglia d quercia)
@@ -47,6 +55,8 @@ const char*  SENEC8= "5509b3d74ca0f61a7c9ced89"; // Sensore EC 8  (Spinacia oler
 const char*  SENEC9= "5509b3d74ca0f61a7c9ced8a"; // Sensore EC 9  (Melissa officinalis)
 const char*  SENEC0= "5509b3d74ca0f61a7c9ced8b"; // Sensore EC 10 (Capsicum)
 const char*  BATTE1= "5509b3d74ca0f61a7c9ced77"; // Voltaggio batteria (SmartCitizen)  
+
+/**********************************************************************************/
 
 unsigned int localPort = 8888;
 
@@ -72,10 +82,32 @@ IPAddress ip(192, 168, 2, 249);
 EthernetClient client;
 EthernetUDP Udp;
 
-char currHour[2], currMin[2], currSec[2];
+byte currHour, currMin, currSec;
 static float pHValue = 0;
 
+/**********************************************************************************/
+
 boolean statusLight = false;
+
+/**********************************************************************************/
+
+byte nsens = 2;
+byte pinEC1[] = {2,8};
+byte pinEC2[] = {0,1};
+byte pinEC3[] = {3,9};
+// parametri di taratura in uS/cm
+float A[] = {870.43,822.71};
+float B[] = {-1.194,-1.190};
+float R1 = 470.;  //  resistenza fissa tra P1 e P3 in ohm
+float RS[] = {0,0}; //  inizializzo resistenza tra i due elettrodi 
+float CS[] = {0,0}; //  inizializzo conducibilità specifica
+
+byte isens = 0;
+byte n = 50;
+
+/**********************************************************************************/
+
+const float ECValRif = 0.9;
 
 /**********************************************************************************/
 
@@ -99,24 +131,44 @@ void setup() {
   getTime();
   Serial.print(currHour);Serial.print(":");Serial.print(currMin);Serial.print(":");Serial.println(currSec);
   
-  for (byte i=0; i < 10; i++) { pinMode(pinLamp[i],OUTPUT); pinMode(pinSenEC[i],OUTPUT); }
+  pinMode(pinLamp1,OUTPUT);
+  pinMode(pinLamp1,OUTPUT);
+  pinMode(pinPump1,OUTPUT);
+  pinMode(pinPump2,OUTPUT);
+  pinMode(pinFert1,OUTPUT);
+  
+  pinMode(pinValF1,INPUT);
+  
+  for(byte isens = 0; isens < nsens ; isens++){
+    pinMode(pinEC1[isens],OUTPUT);
+    pinMode(pinEC1[isens],INPUT);
+    pinMode(pinEC3[isens],OUTPUT);
+  }
+  
+  analogWrite(pinFert1,0);
+  
 }
 
 /**********************************************************************************/
 
 void loop() {
-   if (currMin == "00" || currMin == "10" || currMin == "20" || currMin == "30" || currMin == "40" || currMin == "50" ) { getTime(); delay( 1000 ); }
+   if (currMin == 0 || currMin == 10 || currMin == 20 || currMin == 30 || currMin == 40 || currMin == 50 ) { getTime(); delay( 1000 ); }
    
-   if (currMin == "00" || currMin == "30" ) {
+   /**********************************************************************************/
+
+   if ((0 < currMin && currMin < 5) || ( 30 < currMin && currMin < 35 )) {
      getApiSmartCitizen();  // Get Data from Smart Citizen project
      if ( results[0] == '{' ) {
-      Serial.print("temp "); Serial.println(temp);
-      Serial.print("hum "); Serial.println(hum);
-      Serial.print("co "); Serial.println(co);
-      Serial.print("no2 "); Serial.println(no2);
-      Serial.print("noise "); Serial.println(noise);
-      Serial.print("light "); Serial.println(light);
-      Serial.print("batt "); Serial.println(batt);
+
+      #ifdef DEBUG
+        Serial.print("temp "); Serial.println(temp);
+        Serial.print("hum "); Serial.println(hum);
+        Serial.print("co "); Serial.println(co);
+        Serial.print("no2 "); Serial.println(no2);
+        Serial.print("noise "); Serial.println(noise);
+        Serial.print("light "); Serial.println(light);
+        Serial.print("batt "); Serial.println(batt);
+      #endif
       
       strBuffer=""; sprintf(strBuffer, "%f", temp);  postData(TEMPC1, strBuffer);
       strBuffer=""; sprintf(strBuffer, "%f", hum);   postData(HUMID1, strBuffer);
@@ -127,40 +179,73 @@ void loop() {
       strBuffer=""; sprintf(strBuffer, "%f", batt);  postData(BATTE1, strBuffer);
       
      }
+
+     /**********************************************************************************/
      
      getPh(); if (pHValue > 0 ) { strBuffer=""; sprintf(strBuffer, "%f", pHValue);  postData(PHMET1, strBuffer); }
-   }
+
+     /**********************************************************************************/
+
+     float CS1 = readEC(0);
+     if (CS1 > 0 && CS1 < 1.2) { 
+       strBuffer=""; sprintf(strBuffer, "%f", CS1);  
+       
+       postData(SENEC1, strBuffer); postData(SENEC2, strBuffer); postData(SENEC3, strBuffer); postData(SENEC4, strBuffer); postData(SENEC5, strBuffer); 
+       postData(SENEC6, strBuffer); postData(SENEC7, strBuffer); postData(SENEC8, strBuffer); postData(SENEC9, strBuffer); postData(SENEC0, strBuffer);
+     }
+     
+     /**********************************************************************************/
+     
+     // FERTILIZZANTE
+     if ( currHour == 22 && (30 < currMin && currMin < 35)) {
+       if ( CS1 < ECValRif ) { apriGocciolatore(); }
+       CS1 = readEC(0);
+       while ( CS1 < 0.9 ) { CS1 = readEC(0); delay(2000); }
+       chiudiGocciolatore();
+       
+       postData(SENEC1, strBuffer); postData(SENEC2, strBuffer); postData(SENEC3, strBuffer); postData(SENEC4, strBuffer); postData(SENEC5, strBuffer); 
+       postData(SENEC6, strBuffer); postData(SENEC7, strBuffer); postData(SENEC8, strBuffer); postData(SENEC9, strBuffer); postData(SENEC0, strBuffer);
+     }
+
+     /**********************************************************************************/
+
+     float CS2 = readEC(1);
+     if (CS2 > 0 && CS2 < 1.2) { Serial.println( "ALLARME !!! " ); }
+     
+     /**********************************************************************************/
+  
+   } // end if 0 and 30 min
    
-   if (currHour == "07" && statusLight == false ) { // Luci accese
-     for (byte i=0; i < 10; i++) { digitalWrite(pinLamp[i],HIGH); }
-     postData(LIGHT1, "1");
-     postData(LIGHT2, "1");
-     postData(LIGHT3, "1");
-     postData(LIGHT4, "1");
-     postData(LIGHT5, "1");
-     postData(LIGHT6, "1");
-     postData(LIGHT7, "1");
-     postData(LIGHT8, "1");
-     postData(LIGHT9, "1");
-     postData(LIGHT0, "1");
+   /**********************************************************************************/
+
+   if ( 7 <= currHour && currHour <= 20 && statusLight == false ) { // Luci accese
+     digitalWrite(pinLamp1,HIGH);
+     digitalWrite(pinLamp2,HIGH);
+     
+     postData(LIGHT1, "1"); postData(LIGHT2, "1"); postData(LIGHT3, "1"); postData(LIGHT4, "1"); postData(LIGHT5, "1");
+     postData(LIGHT6, "1"); postData(LIGHT7, "1"); postData(LIGHT8, "1"); postData(LIGHT9, "1"); postData(LIGHT0, "1");
      statusLight = true;
    }
    
-   if (currHour == "21" && statusLight == true ) { // Luci accese
-     for (byte i=0; i < 10; i++) { digitalWrite(pinLamp[i],LOW); }
-     postData(LIGHT1, "0");
-     postData(LIGHT2, "0");
-     postData(LIGHT3, "0");
-     postData(LIGHT4, "0");
-     postData(LIGHT5, "0");
-     postData(LIGHT6, "0");
-     postData(LIGHT7, "0");
-     postData(LIGHT8, "0");
-     postData(LIGHT9, "0");
-     postData(LIGHT0, "0");
+   if ( ((21 <= currHour && currHour <= 23)  || (0 <= currHour && currHour <= 6)) && statusLight == true ) { // Luci accese
+     digitalWrite(pinLamp1,LOW);
+     digitalWrite(pinLamp2,LOW);
+     
+     postData(LIGHT1, "0"); postData(LIGHT2, "0"); postData(LIGHT3, "0"); postData(LIGHT4, "0"); postData(LIGHT5, "0");
+     postData(LIGHT6, "0"); postData(LIGHT7, "0"); postData(LIGHT8, "0"); postData(LIGHT9, "0"); postData(LIGHT0, "0");
      statusLight = false;
    }
    
-   delay( 60000 );
-}
+   /**********************************************************************************/
+   
+   if ( (currHour == 8 || currHour == 13 || currHour == 17 || currHour == 20 ) && (0 < currMin && currMin < 5) ) {  // Sei in orario di irrigazione
+      digitalWrite(pinPump1,HIGH);
+   } else {
+      digitalWrite(pinPump1,LOW);
+   }
+   
+   /**********************************************************************************/
+   
+   delay( 30000 );
+} // end loop
 

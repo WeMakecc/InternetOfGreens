@@ -45,11 +45,13 @@ void getApiSmartCitizen() {
 boolean postData( const char* id, char* value) {
   if (client.connect(server_out, 80)) {
     String post = "{\"sensorId\":\""; post += id; post += "\",\"value\":\""; post += value; post += "\"}";
-
-    Serial.println("connected");
-    Serial.println(post.length());
-    Serial.println(post);
     
+    #ifdef DEBUG
+        Serial.println("connected");
+        Serial.println(post.length());
+        Serial.println(post);
+    #endif    
+
     client.println("POST /iog/samples HTTP/1.1");
     client.println("Host: iot.enter.it");
     client.println("Accept: */" "*");
@@ -118,19 +120,22 @@ void getTime() {
 /**********************************************************************************/
 
 void getHour( unsigned long epoch ) {
-    sprintf(currHour, "%02d",((epoch  % 86400L) / 3600));
+    //sprintf(currHour, "%02d",((epoch  % 86400L) / 3600));
+    currHour = ((epoch  % 86400L) / 3600);
 }   
 
 /**********************************************************************************/
 
 void getMinute( unsigned long epoch ) {
-    sprintf(currMin, "%02d", ((epoch % 3600) / 60));
+    //sprintf(currMin, "%02d", ((epoch % 3600) / 60));
+    currMin = ((epoch % 3600) / 60);
 }
 
 /**********************************************************************************/
 
 void getSecond( unsigned long epoch ) {
-    sprintf(currSec, "%02d", (epoch % 60));
+    //sprintf(currSec, "%02d", (epoch % 60));
+    currSec = (epoch % 60);
 }
 
 /**********************************************************************************/
@@ -213,12 +218,96 @@ void getPh() {
       voltage = avergearray(pHArray, ArrayLenth)*5.0/1024;
       pHValue = 3.5*voltage+Offset;
   }
-  Serial.print("Voltage:");
-  Serial.print(voltage,2);
-  Serial.print("    pH value: ");
-  Serial.println(pHValue,2);
+  #ifdef DEBUG
+    Serial.print("Voltage:");       Serial.print(voltage,2);
+    Serial.print("    pH value: "); Serial.println(pHValue,2);
+  #endif
 }
 
 /**********************************************************************************/
+
+float readEC( byte isens ) {
+  
+  float RS1 = 0.;
+  float RS2 = 0.;
+  float VCC = 5000.;
+  float Vconv = VCC/1024.;
+  float V1 = 0.;
+  float V2 = 0.;
+  float VSG = 0.;
+  
+  float runningAvg1 = 0.;
+  float runningAvg2 = 0.;
+  float runningAvg3 = 0.;
+  
+  //  ciclo di misura su un sensore
+  for(byte i = 0; i < n; i++) {
+    digitalWrite(pinEC1[isens],HIGH);
+    digitalWrite(pinEC3[isens],LOW);
+    runningAvg1 = runningAvg1 + Vconv*analogRead(pinEC2[isens]);         
+    digitalWrite(pinEC1[isens],LOW);
+    runningAvg2 = runningAvg2 + Vconv*analogRead(pinEC2[isens]);         
+    digitalWrite(pinEC3[isens],HIGH);
+    runningAvg3 = runningAvg3 + Vconv*analogRead(pinEC2[isens]);         
+  }
+  VSG = runningAvg2/n;
+  V1  = runningAvg1/n;      
+  V2  = runningAvg3/n;      
+  //  compute RH and VS
+  if(V1 < 2.){
+    RS[isens] = 60000.;
+    CS[isens] = 0.;
+  } else {
+    //  correggo con la galvanica
+    V1 = V1-VSG;
+    V2 = V2-VSG;
+    //  primo calcolo di RS
+    RS1 = R1*(VCC-V1)/V1; 
+    //  secondo calcolo di RS e media tra i due (RS in kohm)
+    RS2 = R1*V2/(VCC-V2);
+    RS[isens] = (RS1 + RS2)/2000.;
+    //  calcolo CS secondo i parametri di taratura
+    if( RS[isens] < 0.5) { CS[isens] = 1300; } else{ CS[isens] = A[isens]*pow(RS[isens],B[isens]); }          
+  }
+    
+  #ifdef DEBUG
+      Serial.print(" sensore # ");   Serial.print(isens);
+      Serial.print("  Galvanica: "); Serial.print(VSG,2);
+      Serial.print("  V1 = ");       Serial.print(V1,0);
+      Serial.print(" V2 = ");        Serial.print(V2,0);
+      Serial.print("  RS1 = ");      Serial.print(RS1,0);
+      Serial.print("  RS2 = ");      Serial.print(RS2,0);
+      Serial.print("  RS = ");       Serial.print(RS[isens],3);
+      Serial.print("  CS = ");       Serial.println(CS[isens],0);
+  #endif  
+  
+  return CS[isens];
+}
+
+/**********************************************************************************/
+
+void apriGocciolatore() {
+   Serial.println( "apri" );
+   while ( digitalRead(pinValF1) == 1 ) {
+     analogWrite(pinFert1,100);
+   }
+   analogWrite(pinFert1,0);
+}
+
+/**********************************************************************************/
+
+void chiudiGocciolatore() {
+   Serial.println( "chiudi" );
+   while ( digitalRead(pinValF1) == 0 ) {
+     analogWrite(pinFert1,100);
+   }
+   delay( 100 );
+   analogWrite(pinFert1,0);
+}
+
+/**********************************************************************************/
+
+/**********************************************************************************/
+
 
 
