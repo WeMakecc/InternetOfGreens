@@ -170,12 +170,18 @@ void loop() {
         Serial.print("batt "); Serial.println(batt);
       #endif
       
+      // Mapping Value
+      co = map(((int)((co/100) + 0.5)*100),1,1000,300,1500);
+      no2 = map(((int)(no2/100 + 0.5)*100),0,500,0,1);
+      noise = map((((int)(noise/10)+0.5)*10),0,100,10,100);
+      batt = map(batt,0,100,0,5);
+      
       strBuffer=""; sprintf(strBuffer, "%f", temp);  postData(TEMPC1, strBuffer);
       strBuffer=""; sprintf(strBuffer, "%f", hum);   postData(HUMID1, strBuffer);
-      strBuffer=""; sprintf(strBuffer, "%f", co);    postData(CO2SN1, strBuffer);
+      strBuffer=""; sprintf(strBuffer, "%d", co);    postData(CO2SN1, strBuffer);
       strBuffer=""; sprintf(strBuffer, "%f", no2);   postData(NO2SN1, strBuffer);
-      strBuffer=""; sprintf(strBuffer, "%f", noise); postData(NOISE1, strBuffer);
-      strBuffer=""; sprintf(strBuffer, "%f", light); postData(LIAMB1, strBuffer);
+      strBuffer=""; sprintf(strBuffer, "%d", noise); postData(NOISE1, strBuffer);
+      strBuffer=""; sprintf(strBuffer, "%d", light); postData(LIAMB1, strBuffer);
       strBuffer=""; sprintf(strBuffer, "%f", batt);  postData(BATTE1, strBuffer);
       
      }
