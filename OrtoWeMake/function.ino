@@ -113,7 +113,12 @@ void getTime() {
     // print Unix time:
     getHour( epoch );                               
     getMinute( epoch );                               
-    getSecond( epoch );                               
+    getSecond( epoch );     
+
+    Serial.println(currHour);
+    Serial.println(currMin);
+    Serial.println(currSec);
+    
   }
 }
 
@@ -121,7 +126,7 @@ void getTime() {
 
 void getHour( unsigned long epoch ) {
     //sprintf(currHour, "%02d",((epoch  % 86400L) / 3600));
-    currHour = ((epoch  % 86400L) / 3600);
+    currHour = (((epoch  % 86400L) / 3600) + 1);
 }   
 
 /**********************************************************************************/

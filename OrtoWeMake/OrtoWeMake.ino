@@ -7,7 +7,7 @@
 
 /**********************************************************************************/
 
-#define DEBUG
+#define DEBUG 1
 
 /**********************************************************************************/
 
@@ -17,8 +17,8 @@
 #define ArrayLenth   40            //times of collection
 #define pinLamp1     22            // Relay right Light
 #define pinLamp2     23            // Relay left Light
-#define pinPump1     32            // Relay Pump 1
-#define pinPump2     33            // Relay Pump 2
+#define pinPump1     24            // Relay Pump 1
+#define pinPump2     25            // Relay Pump 2
 #define pinFert1     3             // elettrovalvola Fertilizzante
 #define pinValF1     2             // controllo valvola Fertilizzante
 
@@ -92,9 +92,9 @@ boolean statusLight = false;
 /**********************************************************************************/
 
 byte nsens = 2;
-byte pinEC1[] = {2,8};
-byte pinEC2[] = {0,1};
-byte pinEC3[] = {3,9};
+byte pinEC1[] = {47,44};
+byte pinEC2[] = {49,46};
+byte pinEC3[] = {51,48};
 // parametri di taratura in uS/cm
 float A[] = {870.43,822.71};
 float B[] = {-1.194,-1.190};
@@ -107,7 +107,7 @@ byte n = 50;
 
 /**********************************************************************************/
 
-const float ECValRif = 0.9;
+const float ECValRif = 0.8;
 
 /**********************************************************************************/
 
@@ -202,7 +202,7 @@ void loop() {
      
      /**********************************************************************************/
      
-     // FERTILIZZANTE
+     /* FERTILIZZANTE
      if ( currHour == 22 && (30 < currMin && currMin < 35)) {
        if ( CS1 < ECValRif ) { apriGocciolatore(); }
        CS1 = readEC(0);
@@ -212,7 +212,7 @@ void loop() {
        postData(SENEC1, strBuffer); postData(SENEC2, strBuffer); postData(SENEC3, strBuffer); postData(SENEC4, strBuffer); postData(SENEC5, strBuffer); 
        postData(SENEC6, strBuffer); postData(SENEC7, strBuffer); postData(SENEC8, strBuffer); postData(SENEC9, strBuffer); postData(SENEC0, strBuffer);
      }
-
+     
      /**********************************************************************************/
 
      float CS2 = readEC(1);
