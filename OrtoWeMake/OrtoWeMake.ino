@@ -7,7 +7,7 @@
 
 /**********************************************************************************/
 
-#define DEBUG 1
+#define DEBUG
 
 /**********************************************************************************/
 
@@ -17,8 +17,8 @@
 #define ArrayLenth   40            //times of collection
 #define pinLamp1     22            // Relay right Light
 #define pinLamp2     23            // Relay left Light
-#define pinPump1     24            // Relay Pump 1
-#define pinPump2     25            // Relay Pump 2
+#define pinPump1     32            // Relay Pump 1
+#define pinPump2     33            // Relay Pump 2
 #define pinFert1     3             // elettrovalvola Fertilizzante
 #define pinValF1     2             // controllo valvola Fertilizzante
 
@@ -76,7 +76,8 @@ boolean startData = false;
 char* strBuffer;
 
 //const char* timestamp;
-double temp, hum, co, no2, noise, light, batt;
+double temp, hum, co, no2, light;
+int noise, batt;
   
 IPAddress ip(192, 168, 2, 249);
 EthernetClient client;
@@ -92,9 +93,9 @@ boolean statusLight = false;
 /**********************************************************************************/
 
 byte nsens = 2;
-byte pinEC1[] = {47,44};
-byte pinEC2[] = {49,46};
-byte pinEC3[] = {51,48};
+byte pinEC1[] = {2,8};
+byte pinEC2[] = {0,1};
+byte pinEC3[] = {3,9};
 // parametri di taratura in uS/cm
 float A[] = {870.43,822.71};
 float B[] = {-1.194,-1.190};
@@ -107,13 +108,12 @@ byte n = 50;
 
 /**********************************************************************************/
 
-const float ECValRif = 0.8;
+const float ECValRif = 0.9;
 
 /**********************************************************************************/
 
 void setup() {
   Serial.begin(9600);
-  while (!Serial) { ; } // wait for serial port to connect. Needed for Leonardo only
   
   if (Ethernet.begin(mac) == 0) {
     Serial.println("Failed to configure Ethernet using DHCP");
@@ -129,7 +129,6 @@ void setup() {
   }
   Serial.println();
   getTime();
-  Serial.print(currHour);Serial.print(":");Serial.print(currMin);Serial.print(":");Serial.println(currSec);
   
   pinMode(pinLamp1,OUTPUT);
   pinMode(pinLamp1,OUTPUT);
@@ -150,14 +149,21 @@ void setup() {
 }
 
 /**********************************************************************************/
+byte lastMin = 0;
 
 void loop() {
-   if (currMin == 0 || currMin == 10 || currMin == 20 || currMin == 30 || currMin == 40 || currMin == 50 ) { getTime(); delay( 1000 ); }
+   /**********************************************************************************/
+
+   if ( (lastMin+20) == currMin ) { 
+      getTime(); 
+      lastMin = currMin;
+      delay( 1000 );
+   }
    
    /**********************************************************************************/
 
-   if ((0 < currMin && currMin < 5) || ( 30 < currMin && currMin < 35 )) {
-     getApiSmartCitizen();  // Get Data from Smart Citizen project
+   if ((0 < currMin && currMin < 59) || ( 30 < currMin && currMin < 35 )) {
+     while ( !getApiSmartCitizen() ) { ; }  // Get Data from Smart Citizen project
      if ( results[0] == '{' ) {
 
       #ifdef DEBUG
@@ -176,60 +182,90 @@ void loop() {
       noise = map((((int)(noise/10)+0.5)*10),0,100,10,100);
       batt = map(batt,0,100,0,5);
       
-      strBuffer=""; sprintf(strBuffer, "%f", temp);  postData(TEMPC1, strBuffer);
-      strBuffer=""; sprintf(strBuffer, "%f", hum);   postData(HUMID1, strBuffer);
-      strBuffer=""; sprintf(strBuffer, "%d", co);    postData(CO2SN1, strBuffer);
-      strBuffer=""; sprintf(strBuffer, "%f", no2);   postData(NO2SN1, strBuffer);
-      strBuffer=""; sprintf(strBuffer, "%d", noise); postData(NOISE1, strBuffer);
-      strBuffer=""; sprintf(strBuffer, "%d", light); postData(LIAMB1, strBuffer);
-      strBuffer=""; sprintf(strBuffer, "%f", batt);  postData(BATTE1, strBuffer);
+      #ifdef DEBUG2
+        Serial.print("temp "); Serial.println(temp);
+        Serial.print("hum "); Serial.println(hum);
+        Serial.print("co "); Serial.println(co);
+        Serial.print("no2 "); Serial.println(no2);
+        Serial.print("noise "); Serial.println(noise);
+        Serial.print("light "); Serial.println(light);
+        Serial.print("batt "); Serial.println(batt);
+      #endif
       
+      strBuffer=""; dtostrf(temp,2,0,strBuffer);  while ( !postData(TEMPC1, strBuffer) ) { ; }
+      strBuffer=""; dtostrf(hum,2,0,strBuffer);   while ( !postData(HUMID1, strBuffer) ) { ; }
+      strBuffer=""; dtostrf(co,4,0,strBuffer);    while ( !postData(CO2SN1, strBuffer) ) { ; }
+      strBuffer=""; dtostrf(no2,1,0,strBuffer);   while ( !postData(NO2SN1, strBuffer) ) { ; }
+      strBuffer=""; dtostrf(noise,3,0,strBuffer); while ( !postData(NOISE1, strBuffer) ) { ; }
+      strBuffer=""; dtostrf(light,2,0,strBuffer); while ( !postData(LIAMB1, strBuffer) ) { ; }
+      strBuffer=""; dtostrf(batt,2,0,strBuffer);  while ( !postData(BATTE1, strBuffer) ) { ; }
      }
 
-     /**********************************************************************************/
+     /**********************************************************************************
      
-     getPh(); if (pHValue > 0 ) { strBuffer=""; sprintf(strBuffer, "%f", pHValue);  postData(PHMET1, strBuffer); }
-
+     getPh();
+     if (pHValue > 0 ) { 
+        strBuffer="";
+        dtostrf(pHValue,2,2,strBuffer);
+        while ( !postData(PHMET1, strBuffer) ) { ; }
+      }
      /**********************************************************************************/
 
      float CS1 = readEC(0);
      if (CS1 > 0 && CS1 < 1.2) { 
-       strBuffer=""; sprintf(strBuffer, "%f", CS1);  
+       strBuffer=""; dtostrf(CS1,1,1,strBuffer);  
        
-       postData(SENEC1, strBuffer); postData(SENEC2, strBuffer); postData(SENEC3, strBuffer); postData(SENEC4, strBuffer); postData(SENEC5, strBuffer); 
-       postData(SENEC6, strBuffer); postData(SENEC7, strBuffer); postData(SENEC8, strBuffer); postData(SENEC9, strBuffer); postData(SENEC0, strBuffer);
+       while ( !postData(SENEC1, strBuffer) ) { ; }
+       while ( !postData(SENEC2, strBuffer) ) { ; }
+       while ( !postData(SENEC3, strBuffer) ) { ; }
+       while ( !postData(SENEC4, strBuffer) ) { ; }
+       while ( !postData(SENEC5, strBuffer) ) { ; }
      }
      
-     /**********************************************************************************/
-     
-     /* FERTILIZZANTE
-     if ( currHour == 22 && (30 < currMin && currMin < 35)) {
-       if ( CS1 < ECValRif ) { apriGocciolatore(); }
-       CS1 = readEC(0);
-       while ( CS1 < 0.9 ) { CS1 = readEC(0); delay(2000); }
-       chiudiGocciolatore();
+     float CS2 = readEC(1);
+     if (CS2 > 0 && CS2 < 1.2) { 
+       strBuffer=""; dtostrf(CS2,1,1,strBuffer);  
        
-       postData(SENEC1, strBuffer); postData(SENEC2, strBuffer); postData(SENEC3, strBuffer); postData(SENEC4, strBuffer); postData(SENEC5, strBuffer); 
-       postData(SENEC6, strBuffer); postData(SENEC7, strBuffer); postData(SENEC8, strBuffer); postData(SENEC9, strBuffer); postData(SENEC0, strBuffer);
+       while ( !postData(SENEC6, strBuffer) ) { ; }
+       while ( !postData(SENEC7, strBuffer) ) { ; }
+       while ( !postData(SENEC8, strBuffer) ) { ; }
+       while ( !postData(SENEC9, strBuffer) ) { ; }
+       while ( !postData(SENEC0, strBuffer) ) { ; }
      }
      
      /**********************************************************************************/
 
-     float CS2 = readEC(1);
-     if (CS2 > 0 && CS2 < 1.2) { Serial.println( "ALLARME !!! " ); }
-     
-     /**********************************************************************************/
   
    } // end if 0 and 30 min
    
+   /**********************************************************************************/
+     
+   // FERTILIZZANTE
+   if ( currHour == 22 && (30 < currMin && currMin < 31)) {
+     apriGocciolatore();
+     while ( !postData(FERTI1, "1") ) { ; }
+     delay( 20000 );
+     chiudiGocciolatore();
+     while ( !postData(FERTI1, "0") ) { ; }
+   }
+
    /**********************************************************************************/
 
    if ( 7 <= currHour && currHour <= 20 && statusLight == false ) { // Luci accese
      digitalWrite(pinLamp1,HIGH);
      digitalWrite(pinLamp2,HIGH);
      
-     postData(LIGHT1, "1"); postData(LIGHT2, "1"); postData(LIGHT3, "1"); postData(LIGHT4, "1"); postData(LIGHT5, "1");
-     postData(LIGHT6, "1"); postData(LIGHT7, "1"); postData(LIGHT8, "1"); postData(LIGHT9, "1"); postData(LIGHT0, "1");
+     while ( !postData(LIGHT1, "1") ) { ; }
+     while ( !postData(LIGHT2, "1") ) { ; }
+     while ( !postData(LIGHT3, "1") ) { ; }
+     while ( !postData(LIGHT4, "1") ) { ; }
+     while ( !postData(LIGHT5, "1") ) { ; }
+     while ( !postData(LIGHT6, "1") ) { ; }
+     while ( !postData(LIGHT7, "1") ) { ; }
+     while ( !postData(LIGHT8, "1") ) { ; }
+     while ( !postData(LIGHT9, "1") ) { ; }
+     while ( !postData(LIGHT0, "1") ) { ; }
+     
      statusLight = true;
    }
    
@@ -237,21 +273,31 @@ void loop() {
      digitalWrite(pinLamp1,LOW);
      digitalWrite(pinLamp2,LOW);
      
-     postData(LIGHT1, "0"); postData(LIGHT2, "0"); postData(LIGHT3, "0"); postData(LIGHT4, "0"); postData(LIGHT5, "0");
-     postData(LIGHT6, "0"); postData(LIGHT7, "0"); postData(LIGHT8, "0"); postData(LIGHT9, "0"); postData(LIGHT0, "0");
+     while ( !postData(LIGHT1, "0") ) { ; }
+     while ( !postData(LIGHT2, "0") ) { ; }
+     while ( !postData(LIGHT3, "0") ) { ; }
+     while ( !postData(LIGHT4, "0") ) { ; }
+     while ( !postData(LIGHT5, "0") ) { ; }
+     while ( !postData(LIGHT6, "0") ) { ; }
+     while ( !postData(LIGHT7, "0") ) { ; }
+     while ( !postData(LIGHT8, "0") ) { ; }
+     while ( !postData(LIGHT9, "0") ) { ; }
+     while ( !postData(LIGHT0, "0") ) { ; }
+     
      statusLight = false;
    }
    
    /**********************************************************************************/
    
-   if ( (currHour == 8 || currHour == 13 || currHour == 17 || currHour == 20 ) && (0 < currMin && currMin < 5) ) {  // Sei in orario di irrigazione
+   if ( (currHour == 8 || currHour == 13 || currHour == 17 || currHour == 20 ) && (0 < currMin && currMin < 6) ) {  // Sei in orario di irrigazione
       digitalWrite(pinPump1,HIGH);
+      while ( !postData(POMPA1, "1") ) { ; }
    } else {
       digitalWrite(pinPump1,LOW);
+      while ( !postData(POMPA1, "0") ) { ; }
    }
    
    /**********************************************************************************/
    
-   delay( 30000 );
+   delay( 60000 );
 } // end loop
-

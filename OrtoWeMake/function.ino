@@ -1,14 +1,16 @@
 /**********************************************************************************/
 
-void getApiSmartCitizen() {
+boolean getApiSmartCitizen() {
   if (client.connect(server_in, 80)) {
-    Serial.println("connected");
+    #ifdef DEBUG
+       Serial.println("SmartCitizen: connected");
+    #endif
     client.println("GET /v0.0.1/26515ecad271367264ff71ee4c2e4fb3f24191bb/lastpost.json HTTP/1.1");
     client.println("Host: api.smartcitizen.me");
     client.println("Connection: close");
     client.println();
   }
-
+  index = 0;
   if (client.available())  {
      while (client.connected()) {
        char c = client.read();
@@ -19,14 +21,14 @@ void getApiSmartCitizen() {
   results[index]=0;
   
   if (!client.connected()) {
-    Serial.println("disconnecting.");
+    Serial.println("SmartCitizen: disconnecting.");
     client.stop();
     startData=false; index = 0;
     StaticJsonBuffer<550> jsonBuffer;
     JsonObject& root = jsonBuffer.parseObject(results);
     if (!root.success()) {
       Serial.println("parseObject() failed");
-      return;
+      return true;
     }
     //timestamp = root["devices"][0]["posts"]["timestamp"];
     temp  = root["devices"][0]["posts"]["temp"];
@@ -36,13 +38,17 @@ void getApiSmartCitizen() {
     noise = root["devices"][0]["posts"]["noise"];
     light = root["devices"][0]["posts"]["light"];
     batt  = root["devices"][0]["posts"]["bat"];
-    
+    return true;
   }
+  return false;
 }
 
 /**********************************************************************************/
 
 boolean postData( const char* id, char* value) {
+  
+  //Serial.print(" ID: " ); Serial.println( id );
+  
   if (client.connect(server_out, 80)) {
     String post = "{\"sensorId\":\""; post += id; post += "\",\"value\":\""; post += value; post += "\"}";
     
@@ -64,14 +70,18 @@ boolean postData( const char* id, char* value) {
     client.print(post);
   }
 
+  index = 0;
   if (client.available())  {
     while (client.connected()) {
       char c = client.read();
-      Serial.print( c );
-      
+      #ifdef DEBUG2
+         Serial.print( c );
+      #endif
+      /*
       if( c == 'H'  ){ if(startData==false){ startData=true; } }
       if(startData==true){ results[index] = c; index++; }
       if (c == '\n') { startData=false;  } // Termina stringa caturata
+      */
     } 
   }
   results[index]=0;
@@ -79,9 +89,12 @@ boolean postData( const char* id, char* value) {
   if (!client.connected()) {
     client.stop();
     startData=false; index = 0;
-    if (results != "HTTP/1.1 200 OK") { return false; }
-    else { return true; }
+    //Serial.print("Response Http: "); Serial.println( results );
+    //if (results != "HTTP/1.1 200 OK") { return false; }
+    return true;
   }
+  
+  return false;
 }
 
 /**********************************************************************************/
@@ -92,33 +105,25 @@ void getTime() {
   if ( Udp.parsePacket() ) {  
     // We've received a packet, read the data from it
     Udp.read(packetBuffer,NTP_PACKET_SIZE);  // read the packet into the buffer
-
-    //the timestamp starts at byte 40 of the received packet and is four bytes,
-    // or two words, long. First, esxtract the two words:
-
     unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
     unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);  
-    // combine the four bytes (two words) into a long integer
-    // this is NTP time (seconds since Jan 1 1900):
     unsigned long secsSince1900 = highWord << 16 | lowWord;  
-    Serial.print("Seconds since Jan 1 1900 = " );
-    Serial.println(secsSince1900);               
-
-    // now convert NTP time into everyday time:
-    Serial.print("Unix time = ");
-    // Unix time starts on Jan 1 1970. In seconds, that's 2208988800:
     const unsigned long seventyYears = 2208988800UL;     
-    // subtract seventy years:
     unsigned long epoch = secsSince1900 - seventyYears;  
-    // print Unix time:
+    
+    #ifdef DEBUG2
+       Serial.print("Seconds since Jan 1 1900 = " );
+       Serial.println(secsSince1900);               
+       Serial.print("Unix time = ");
+    #endif
+    
     getHour( epoch );                               
     getMinute( epoch );                               
-    getSecond( epoch );     
+    getSecond( epoch );
 
-    Serial.println(currHour);
-    Serial.println(currMin);
-    Serial.println(currSec);
-    
+    #ifdef DEBUG
+       Serial.print("Ora Corrente: "); Serial.print( currHour ); Serial.print(":"); Serial.print( currMin ); Serial.print(":"); Serial.println( currSec );
+    #endif    
   }
 }
 
@@ -126,7 +131,7 @@ void getTime() {
 
 void getHour( unsigned long epoch ) {
     //sprintf(currHour, "%02d",((epoch  % 86400L) / 3600));
-    currHour = (((epoch  % 86400L) / 3600) + 1);
+    currHour = (((epoch  % 86400L) / 3600)+1);
 }   
 
 /**********************************************************************************/
@@ -311,8 +316,3 @@ void chiudiGocciolatore() {
 }
 
 /**********************************************************************************/
-
-/**********************************************************************************/
-
-
-
