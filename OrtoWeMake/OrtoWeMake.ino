@@ -209,6 +209,10 @@ void loop() {
         dtostrf(pHValue,2,2,strBuffer);
         while ( !postData(PHMET1, strBuffer) ) { ; }
       }
+<<<<<<< HEAD
+=======
+
+>>>>>>> f6485d17bb8e8694cc25ea63592b26062c64d494
      /**********************************************************************************/
 
      float CS1 = readEC(0);
