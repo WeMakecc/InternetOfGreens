@@ -161,14 +161,13 @@ void setup() {
 
 void loop() {
 
-  writeText("\n","------------------------");
-  writeText("\n","\n");
+  writeText("\n","------------------------\n");
   
   /**********************************************************************************/
   // TEMP ( in attesa dell'RTC )
-  currMin++; if ( currMin >= 60 ) { currMin = 0; }
+  currMin++; if ( currMin >= 60 ) { currMin = 0; currHour++; if ( currHour > 23 ) { currHour = 0; }}
   
-  sprintf(lcdBuffer2,  "%02d", currMin); 
+  sprintf(lcdBuffer2,  "Ora: %02d:%02d:%02d", currHour, currMin, currSec); 
   writeText("currMin: ",lcdBuffer2);
   
   /**********************************************************************************/
@@ -187,7 +186,7 @@ void loop() {
    
    /**********************************************************************************/
 
-   if ((0 < currMin && currMin < 1) || ( 30 < currMin && currMin < 31 )) {
+   if ( currMin == 0  || currMin == 30 ) {
      while ( !getApiSmartCitizen() ) { ; }  // Get Data from Smart Citizen project
      if ( results[0] == '{' ) {
 
@@ -215,8 +214,7 @@ void loop() {
      //getPh();
      pHValue = 7.2;
      if (pHValue > 0 ) { 
-        strBuffer="";
-        dtostrf(pHValue,2,2,strBuffer);
+        strBuffer=""; dtostrf(pHValue,2,2,strBuffer);
         while ( !postData(PHMET1, strBuffer) ) { ; }
       }
 
@@ -248,10 +246,10 @@ void loop() {
   
    } // end if 0 and 30 min
    
-   /**********************************************************************************
+   /**********************************************************************************/
      
    // FERTILIZZANTE
-   if ( currHour == 22 && (30 < currMin && currMin < 31)) {
+   if ( currHour == 22 && currMin == 0 ) {
      apriGocciolatore();
      while ( !postData(FERTI1, "1") ) { ; }
      delay( 20000 );
@@ -299,7 +297,7 @@ void loop() {
    
    /**********************************************************************************/
    
-   if ( (currHour == 8 || currHour == 13 || currHour == 17 || currHour == 20 ) && (1 < currMin && currMin < 7) ) {  // Sei in orario di irrigazione
+   if ( (currHour == 8 || currHour == 13 || currHour == 17 || currHour == 20 ) && (0 <= currMin && currMin <= 5) ) {  // Sei in orario di irrigazione
       digitalWrite(pinPump1,HIGH);
       while ( !postData(POMPA1, "1") ) { ; }
    } else {
