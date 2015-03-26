@@ -91,6 +91,7 @@ static float pHValue = 0;
 /**********************************************************************************/
 
 boolean statusLight = false;
+boolean statusPompa = false;
 const float ECValRif = 0.9;
 byte lastTimeSet = 0;
 char lcdBuffer1[16] = "";
@@ -297,12 +298,15 @@ void loop() {
    
    /**********************************************************************************/
    
-   if ( (currHour == 8 || currHour == 13 || currHour == 17 || currHour == 20 ) && (0 <= currMin && currMin <= 5) ) {  // Sei in orario di irrigazione
+   if ( (currHour == 8 || currHour == 13 || currHour == 17 || currHour == 20 ) && (0 <= currMin && currMin <= 5) && !statusPompa) {  // Sei in orario di irrigazione
       digitalWrite(pinPump1,HIGH);
       while ( !postData(POMPA1, "1") ) { ; }
-   } else {
+      statusPompa = true;
+   }
+   if ( 6 <= currMin && currMin <= 59 && statusPompa) {
       digitalWrite(pinPump1,LOW);
       while ( !postData(POMPA1, "0") ) { ; }
+      statusPompa = false;
    }
    
    /**********************************************************************************/
