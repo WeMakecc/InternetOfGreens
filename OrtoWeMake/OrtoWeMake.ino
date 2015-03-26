@@ -4,6 +4,8 @@
 #include <Ethernet.h>
 #include <ArduinoJson.h>
 #include <EthernetUdp.h>
+#include <Wire.h>
+#include "RTClib.h"
 
 /**********************************************************************************/
 
@@ -89,6 +91,10 @@ static float pHValue = 0;
 /**********************************************************************************/
 
 boolean statusLight = false;
+const float ECValRif = 0.9;
+byte lastTimeSet = 0;
+char lcdBuffer1[16] = "";
+char lcdBuffer2[16] = "";
 
 /**********************************************************************************/
 
@@ -108,7 +114,7 @@ byte n = 50;
 
 /**********************************************************************************/
 
-const float ECValRif = 0.9;
+RTC_DS1307 RTC;
 
 /**********************************************************************************/
 
@@ -121,6 +127,8 @@ void setup() {
   }
   
   Udp.begin(localPort);
+  Wire.begin();
+  RTC.begin();
   
   Serial.print("My IP address: ");
   for (byte thisByte = 0; thisByte < 4; thisByte++) {
@@ -128,7 +136,9 @@ void setup() {
     Serial.print("."); 
   }
   Serial.println();
+  
   getTime();
+  //if (! RTC.isrunning()) { writeText("RTC NOT running!","RESET REQUIRED"); }
   
   pinMode(pinLamp1,OUTPUT);
   pinMode(pinLamp1,OUTPUT);
@@ -145,20 +155,28 @@ void setup() {
   }
   
   analogWrite(pinFert1,0);
-  
 }
 
 /**********************************************************************************/
-byte lastMin = 0;
 
 void loop() {
-   /**********************************************************************************/
 
-   if ( (lastMin+20) == currMin ) { 
+  /**********************************************************************************/
+  // TEMP ( in attesa dell'RTC )
+  currMin++; if ( currMin == 60 ) { currMin = 0; }
+  /**********************************************************************************/
+  
+  if ( lastTimeSet != currHour ) { 
       getTime(); 
-      lastMin = currMin;
-      delay( 1000 );
+      //RTC.adjust(DateTime(now.year(), now.month(), now.day(), currHour, currMin, currSec)); 
+      lastTimeSet = currHour;
    }
+   
+   /**********************************************************************************
+   
+   currHour = now.hour();
+   currMin  = now.minute();
+   currSec  = now.second();
    
    /**********************************************************************************/
 
@@ -166,31 +184,16 @@ void loop() {
      while ( !getApiSmartCitizen() ) { ; }  // Get Data from Smart Citizen project
      if ( results[0] == '{' ) {
 
-      #ifdef DEBUG
-        Serial.print("temp "); Serial.println(temp);
-        Serial.print("hum "); Serial.println(hum);
-        Serial.print("co "); Serial.println(co);
-        Serial.print("no2 "); Serial.println(no2);
-        Serial.print("noise "); Serial.println(noise);
-        Serial.print("light "); Serial.println(light);
-        Serial.print("batt "); Serial.println(batt);
-      #endif
-      
       // Mapping Value
       co = map(((int)((co/100) + 0.5)*100),1,1000,300,1500);
       no2 = map(((int)(no2/100 + 0.5)*100),0,500,0,1);
       noise = map((((int)(noise/10)+0.5)*10),0,100,10,100);
       batt = map(batt,0,100,0,5);
+
+      sprintf(lcdBuffer1,  "%02d° %03d% %04dCo", temp, hum, co); 
+      sprintf(lcdBuffer2,  "%03dn %03dl %1dv %01dNo", noise, light, batt, no2); 
       
-      #ifdef DEBUG2
-        Serial.print("temp "); Serial.println(temp);
-        Serial.print("hum "); Serial.println(hum);
-        Serial.print("co "); Serial.println(co);
-        Serial.print("no2 "); Serial.println(no2);
-        Serial.print("noise "); Serial.println(noise);
-        Serial.print("light "); Serial.println(light);
-        Serial.print("batt "); Serial.println(batt);
-      #endif
+      writeText(lcdBuffer1,lcdBuffer2);
       
       strBuffer=""; dtostrf(temp,2,0,strBuffer);  while ( !postData(TEMPC1, strBuffer) ) { ; }
       strBuffer=""; dtostrf(hum,2,0,strBuffer);   while ( !postData(HUMID1, strBuffer) ) { ; }
@@ -201,22 +204,20 @@ void loop() {
       strBuffer=""; dtostrf(batt,2,0,strBuffer);  while ( !postData(BATTE1, strBuffer) ) { ; }
      }
 
-     /**********************************************************************************
+     /**********************************************************************************/
      
-     getPh();
+     //getPh();
+     pHValue = 7.2;
      if (pHValue > 0 ) { 
         strBuffer="";
         dtostrf(pHValue,2,2,strBuffer);
         while ( !postData(PHMET1, strBuffer) ) { ; }
       }
-<<<<<<< HEAD
-=======
 
->>>>>>> f6485d17bb8e8694cc25ea63592b26062c64d494
      /**********************************************************************************/
 
      float CS1 = readEC(0);
-     if (CS1 > 0 && CS1 < 1.2) { 
+     if (CS1 > 0 && CS1 < 1.3) { 
        strBuffer=""; dtostrf(CS1,1,1,strBuffer);  
        
        while ( !postData(SENEC1, strBuffer) ) { ; }
@@ -227,7 +228,7 @@ void loop() {
      }
      
      float CS2 = readEC(1);
-     if (CS2 > 0 && CS2 < 1.2) { 
+     if (CS2 > 0 && CS2 < 1.3) { 
        strBuffer=""; dtostrf(CS2,1,1,strBuffer);  
        
        while ( !postData(SENEC6, strBuffer) ) { ; }
@@ -238,7 +239,6 @@ void loop() {
      }
      
      /**********************************************************************************/
-
   
    } // end if 0 and 30 min
    

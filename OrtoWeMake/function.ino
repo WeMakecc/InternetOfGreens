@@ -2,9 +2,8 @@
 
 boolean getApiSmartCitizen() {
   if (client.connect(server_in, 80)) {
-    #ifdef DEBUG
-       Serial.println("SmartCitizen: connected");
-    #endif
+    writeText("SmartCitizen: ","connected");
+   
     client.println("GET /v0.0.1/26515ecad271367264ff71ee4c2e4fb3f24191bb/lastpost.json HTTP/1.1");
     client.println("Host: api.smartcitizen.me");
     client.println("Connection: close");
@@ -21,13 +20,13 @@ boolean getApiSmartCitizen() {
   results[index]=0;
   
   if (!client.connected()) {
-    Serial.println("SmartCitizen: disconnecting.");
+    writeText("SmartCitizen: ","disconnecting");
     client.stop();
     startData=false; index = 0;
     StaticJsonBuffer<550> jsonBuffer;
     JsonObject& root = jsonBuffer.parseObject(results);
     if (!root.success()) {
-      Serial.println("parseObject() failed");
+      writeText("parseObject: ","failed");
       return true;
     }
     //timestamp = root["devices"][0]["posts"]["timestamp"];
@@ -52,10 +51,10 @@ boolean postData( const char* id, char* value) {
   if (client.connect(server_out, 80)) {
     String post = "{\"sensorId\":\""; post += id; post += "\",\"value\":\""; post += value; post += "\"}";
     
-    #ifdef DEBUG
-        Serial.println("connected");
-        Serial.println(post.length());
-        Serial.println(post);
+    sprintf(lcdBuffer2,  "%03d", post.length()); 
+    writeText("Connected",lcdBuffer2);
+    #ifdef DEGBUG
+       Serial.println(post);
     #endif    
 
     client.println("POST /iog/samples HTTP/1.1");
@@ -103,7 +102,6 @@ void getTime() {
   sendNTPpacket(timeServer); // send an NTP packet to a time server
   delay(1000);  
   if ( Udp.parsePacket() ) {  
-    // We've received a packet, read the data from it
     Udp.read(packetBuffer,NTP_PACKET_SIZE);  // read the packet into the buffer
     unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
     unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);  
@@ -129,46 +127,30 @@ void getTime() {
 
 /**********************************************************************************/
 
-void getHour( unsigned long epoch ) {
-    //sprintf(currHour, "%02d",((epoch  % 86400L) / 3600));
-    currHour = (((epoch  % 86400L) / 3600)+1);
-}   
+void getHour( unsigned long epoch ) { currHour = (((epoch  % 86400L) / 3600)+1); }   
 
 /**********************************************************************************/
 
-void getMinute( unsigned long epoch ) {
-    //sprintf(currMin, "%02d", ((epoch % 3600) / 60));
-    currMin = ((epoch % 3600) / 60);
-}
+void getMinute( unsigned long epoch ) { currMin = ((epoch % 3600) / 60); }
 
 /**********************************************************************************/
 
-void getSecond( unsigned long epoch ) {
-    //sprintf(currSec, "%02d", (epoch % 60));
-    currSec = (epoch % 60);
-}
+void getSecond( unsigned long epoch ) { currSec = (epoch % 60); }
 
 /**********************************************************************************/
 
-// send an NTP request to the time server at the given address 
 unsigned long sendNTPpacket(IPAddress& address)
 {
-  // set all bytes in the buffer to 0
   memset(packetBuffer, 0, NTP_PACKET_SIZE); 
-  // Initialize values needed to form NTP request
-  // (see URL above for details on the packets)
   packetBuffer[0] = 0b11100011;   // LI, Version, Mode
   packetBuffer[1] = 0;     // Stratum, or type of clock
   packetBuffer[2] = 6;     // Polling Interval
   packetBuffer[3] = 0xEC;  // Peer Clock Precision
-  // 8 bytes of zero for Root Delay & Root Dispersion
   packetBuffer[12]  = 49; 
   packetBuffer[13]  = 0x4E;
   packetBuffer[14]  = 49;
   packetBuffer[15]  = 52;
 
-  // all NTP fields have been given values, now
-  // you can send a packet requesting a timestamp: 		   
   Udp.beginPacket(address, 123); //NTP requests are to port 123
   Udp.write(packetBuffer,NTP_PACKET_SIZE);
   Udp.endPacket(); 
@@ -228,10 +210,10 @@ void getPh() {
       voltage = avergearray(pHArray, ArrayLenth)*5.0/1024;
       pHValue = 3.5*voltage+Offset;
   }
-  #ifdef DEBUG
-    Serial.print("Voltage:");       Serial.print(voltage,2);
-    Serial.print("    pH value: "); Serial.println(pHValue,2);
-  #endif
+  
+  sprintf(lcdBuffer1,  "%s: %03dv", "Volt", voltage); 
+  sprintf(lcdBuffer2,  "%s: %f", "pH value", pHValue); 
+  writeText( lcdBuffer1,lcdBuffer2 );
 }
 
 /**********************************************************************************/
@@ -250,7 +232,6 @@ float readEC( byte isens ) {
   float runningAvg2 = 0.;
   float runningAvg3 = 0.;
   
-  //  ciclo di misura su un sensore
   for(byte i = 0; i < n; i++) {
     digitalWrite(pinEC1[isens],HIGH);
     digitalWrite(pinEC3[isens],LOW);
@@ -280,16 +261,9 @@ float readEC( byte isens ) {
     if( RS[isens] < 0.5) { CS[isens] = 1300; } else{ CS[isens] = A[isens]*pow(RS[isens],B[isens]); }          
   }
     
-  #ifdef DEBUG
-      Serial.print(" sensore # ");   Serial.print(isens);
-      Serial.print("  Galvanica: "); Serial.print(VSG,2);
-      Serial.print("  V1 = ");       Serial.print(V1,0);
-      Serial.print(" V2 = ");        Serial.print(V2,0);
-      Serial.print("  RS1 = ");      Serial.print(RS1,0);
-      Serial.print("  RS2 = ");      Serial.print(RS2,0);
-      Serial.print("  RS = ");       Serial.print(RS[isens],3);
-      Serial.print("  CS = ");       Serial.println(CS[isens],0);
-  #endif  
+  sprintf(lcdBuffer1,  "%d: G:%02d V1:%02d V2:%02d", isens, VSG, V1, V2); 
+  sprintf(lcdBuffer2,  "%d: RS:%02d CS:%02d", isens, RS, CS); 
+  writeText( lcdBuffer1,lcdBuffer2 ); 
   
   return CS[isens];
 }
@@ -313,6 +287,24 @@ void chiudiGocciolatore() {
    }
    delay( 100 );
    analogWrite(pinFert1,0);
+}
+
+/**********************************************************************************/
+
+void writeText( String text1, String text2 ) {
+  /*
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(text1);
+  lcd.setCursor(0, 1);
+  lcd.print(text2);
+  */
+  
+  #ifdef DEBUG
+    Serial.print(text1);
+    Serial.println(text2);
+  #endif
+  
 }
 
 /**********************************************************************************/
