@@ -51,12 +51,10 @@ boolean postData( const char* id, char* value) {
   if (client.connect(server_out, 80)) {
     String post = "{\"sensorId\":\""; post += id; post += "\",\"value\":\""; post += value; post += "\"}";
     
-    sprintf(lcdBuffer2,  "%03d", post.length()); 
-    writeText("Connected",lcdBuffer2);
-    #ifdef DEGBUG
-       Serial.println(post);
-    #endif    
-
+    writeText(id,value);
+    id = "";
+    value ="";
+    
     client.println("POST /iog/samples HTTP/1.1");
     client.println("Host: iot.enter.it");
     client.println("Accept: */" "*");

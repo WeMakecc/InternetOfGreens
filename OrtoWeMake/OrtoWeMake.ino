@@ -161,9 +161,16 @@ void setup() {
 
 void loop() {
 
+  writeText("\n","------------------------");
+  writeText("\n","\n");
+  
   /**********************************************************************************/
   // TEMP ( in attesa dell'RTC )
-  currMin++; if ( currMin == 60 ) { currMin = 0; }
+  currMin++; if ( currMin >= 60 ) { currMin = 0; }
+  
+  sprintf(lcdBuffer2,  "%02d", currMin); 
+  writeText("currMin: ",lcdBuffer2);
+  
   /**********************************************************************************/
   
   if ( lastTimeSet != currHour ) { 
@@ -180,7 +187,7 @@ void loop() {
    
    /**********************************************************************************/
 
-   if ((0 < currMin && currMin < 59) || ( 30 < currMin && currMin < 35 )) {
+   if ((0 < currMin && currMin < 1) || ( 30 < currMin && currMin < 31 )) {
      while ( !getApiSmartCitizen() ) { ; }  // Get Data from Smart Citizen project
      if ( results[0] == '{' ) {
 
@@ -192,7 +199,6 @@ void loop() {
 
       sprintf(lcdBuffer1,  "%02d° %03d% %04dCo", temp, hum, co); 
       sprintf(lcdBuffer2,  "%03dn %03dl %1dv %01dNo", noise, light, batt, no2); 
-      
       writeText(lcdBuffer1,lcdBuffer2);
       
       strBuffer=""; dtostrf(temp,2,0,strBuffer);  while ( !postData(TEMPC1, strBuffer) ) { ; }
@@ -242,7 +248,7 @@ void loop() {
   
    } // end if 0 and 30 min
    
-   /**********************************************************************************/
+   /**********************************************************************************
      
    // FERTILIZZANTE
    if ( currHour == 22 && (30 < currMin && currMin < 31)) {
@@ -293,7 +299,7 @@ void loop() {
    
    /**********************************************************************************/
    
-   if ( (currHour == 8 || currHour == 13 || currHour == 17 || currHour == 20 ) && (0 < currMin && currMin < 6) ) {  // Sei in orario di irrigazione
+   if ( (currHour == 8 || currHour == 13 || currHour == 17 || currHour == 20 ) && (1 < currMin && currMin < 7) ) {  // Sei in orario di irrigazione
       digitalWrite(pinPump1,HIGH);
       while ( !postData(POMPA1, "1") ) { ; }
    } else {
