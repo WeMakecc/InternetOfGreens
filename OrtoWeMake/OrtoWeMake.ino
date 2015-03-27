@@ -6,6 +6,7 @@
 #include <EthernetUdp.h>
 #include <Wire.h>
 #include "RTClib.h"
+#include <avr/wdt.h>
 
 /**********************************************************************************/
 
@@ -121,6 +122,7 @@ RTC_DS1307 RTC;
 
 void setup() {
   Serial.begin(9600);
+  wdt_enable(WDTO_8S);
   
   if (Ethernet.begin(mac) == 0) {
     Serial.println("Failed to configure Ethernet using DHCP");
@@ -162,7 +164,7 @@ void setup() {
 
 void loop() {
 
-  writeText("\n","------------------------\n");
+  writeText("\n","---------------");
   
   /**********************************************************************************/
   // TEMP ( in attesa dell'RTC )
@@ -312,4 +314,5 @@ void loop() {
    /**********************************************************************************/
    
    delay( 60000 );
+   wdt_reset();
 } // end loop
