@@ -6,7 +6,6 @@
 #include <EthernetUdp.h>
 #include <Wire.h>
 #include "RTClib.h"
-#include <avr/wdt.h>
 
 /**********************************************************************************/
 
@@ -15,8 +14,8 @@
 /**********************************************************************************/
 
 #define textBuffSize 500
-#define PhMeterPin   A0            //pH meter Analog output to Arduino Analog Input 0
-#define Offset       -0.26         //deviation compensate
+#define PhMeterPin   8            //pH meter Analog output to Arduino Analog Input 0
+#define Offset       0.24            //deviation compensate
 #define ArrayLenth   40            //times of collection
 #define pinLamp1     22            // Relay right Light
 #define pinLamp2     23            // Relay left Light
@@ -64,11 +63,12 @@ const char*  BATTE1= "5509b3d74ca0f61a7c9ced77"; // Voltaggio batteria (SmartCit
 unsigned int localPort = 8888;
 
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-//char server_in[] = "api.smartcitizen.me";    // name address for Google (using DNS)
-//char server_out[] = "iot.enter.it";    // name address for Google (using DNS)
-IPAddress server_in(104,28,14,99); // api.smartcitizen.me
-IPAddress server_out(185,48,32,120); // iot.enter.it
-IPAddress timeServer(132, 163, 4, 101); // time-a.timefreq.bldrdoc.gov NTP server
+char server_in[]  = "api.smartcitizen.me";    // name address for Google (using DNS)
+char server_out[] = "iot.enter.it";    // name address for Google (using DNS)
+char timeServer[] = "time.nist.gov";     // NTP Server
+//IPAddress server_in(104,28,14,99); // api.smartcitizen.me
+//IPAddress server_out(185,48,32,120); // iot.enter.it
+//IPAddress timeServer(132, 163, 4, 101); // time-a.timefreq.bldrdoc.gov NTP server
 
 const int NTP_PACKET_SIZE= 48;
 byte packetBuffer[ NTP_PACKET_SIZE];
@@ -101,9 +101,9 @@ char lcdBuffer2[16] = "";
 /**********************************************************************************/
 
 byte nsens = 2;
-byte pinEC1[] = {2,8};
-byte pinEC2[] = {0,1};
-byte pinEC3[] = {3,9};
+byte pinEC1[] = {51,50};
+byte pinEC2[] = {15,14};
+byte pinEC3[] = {53,52};
 // parametri di taratura in uS/cm
 float A[] = {870.43,822.71};
 float B[] = {-1.194,-1.190};
@@ -122,7 +122,6 @@ RTC_DS1307 RTC;
 
 void setup() {
   Serial.begin(9600);
-  wdt_enable(WDTO_8S);
   
   if (Ethernet.begin(mac) == 0) {
     Serial.println("Failed to configure Ethernet using DHCP");
@@ -138,13 +137,14 @@ void setup() {
     Serial.print(Ethernet.localIP()[thisByte], DEC);
     Serial.print("."); 
   }
-  Serial.println();
+  Serial.println("");
   
   getTime();
-  //if (! RTC.isrunning()) { writeText("RTC NOT running!","RESET REQUIRED"); }
+  if (! RTC.isrunning()) { Serial.println("RTC NOT running! RESET REQUIRED"); }
+  else                   { RTC.adjust(DateTime(__DATE__, __TIME__)); }
   
   pinMode(pinLamp1,OUTPUT);
-  pinMode(pinLamp1,OUTPUT);
+  pinMode(pinLamp2,OUTPUT);
   pinMode(pinPump1,OUTPUT);
   pinMode(pinPump2,OUTPUT);
   pinMode(pinFert1,OUTPUT);
@@ -153,44 +153,36 @@ void setup() {
   
   for(byte isens = 0; isens < nsens ; isens++){
     pinMode(pinEC1[isens],OUTPUT);
-    pinMode(pinEC1[isens],INPUT);
+    pinMode(pinEC2[isens],INPUT);
     pinMode(pinEC3[isens],OUTPUT);
   }
-  
   analogWrite(pinFert1,0);
 }
 
 /**********************************************************************************/
 
 void loop() {
-
-  writeText("\n","---------------");
-  
-  /**********************************************************************************/
-  // TEMP ( in attesa dell'RTC )
-  currMin++; if ( currMin >= 60 ) { currMin = 0; currHour++; if ( currHour > 23 ) { currHour = 0; }}
+  DateTime now = RTC.now();
+  Serial.println("\n---------------");
   
   sprintf(lcdBuffer2,  "Ora: %02d:%02d:%02d", currHour, currMin, currSec); 
-  writeText("currMin: ",lcdBuffer2);
+  Serial.println(lcdBuffer2);
   
   /**********************************************************************************/
-  
   if ( lastTimeSet != currHour ) { 
       getTime(); 
-      //RTC.adjust(DateTime(now.year(), now.month(), now.day(), currHour, currMin, currSec)); 
+      RTC.adjust(DateTime(now.year(), now.month(), now.day(), currHour, currMin, currSec)); 
       lastTimeSet = currHour;
    }
-   
-   /**********************************************************************************
+   /**********************************************************************************/
    
    currHour = now.hour();
    currMin  = now.minute();
    currSec  = now.second();
    
    /**********************************************************************************/
-
-   if ( currMin == 0  || currMin == 30 ) {
-     while ( !getApiSmartCitizen() ) { ; }  // Get Data from Smart Citizen project
+   if ( 0 == currMin && currMin == 30 ) { // Get Data from Smart Citizen project
+     while ( !getApiSmartCitizen() ) { ; }
      if ( results[0] == '{' ) {
 
       // Mapping Value
@@ -201,7 +193,8 @@ void loop() {
 
       sprintf(lcdBuffer1,  "%02d° %03d% %04dCo", temp, hum, co); 
       sprintf(lcdBuffer2,  "%03dn %03dl %1dv %01dNo", noise, light, batt, no2); 
-      writeText(lcdBuffer1,lcdBuffer2);
+      Serial.println(lcdBuffer1);
+      Serial.println(lcdBuffer2);
       
       strBuffer=""; dtostrf(temp,2,0,strBuffer);  while ( !postData(TEMPC1, strBuffer) ) { ; }
       strBuffer=""; dtostrf(hum,2,0,strBuffer);   while ( !postData(HUMID1, strBuffer) ) { ; }
@@ -214,8 +207,7 @@ void loop() {
 
      /**********************************************************************************/
      
-     //getPh();
-     pHValue = 7.2;
+     getPh();
      if (pHValue > 0 ) { 
         strBuffer=""; dtostrf(pHValue,2,2,strBuffer);
         while ( !postData(PHMET1, strBuffer) ) { ; }
@@ -247,15 +239,22 @@ void loop() {
      
      /**********************************************************************************/
   
+     digitalWrite(pinEC1[0],HIGH);
+     float voltageEC = analogRead(14) * (5.0 / 1023.0);
+     if ( voltageEC > 2 ) { while ( !postData(ACLEV1, "1") ) { ; } }
+    else                  { while ( !postData(ACLEV1, "0") ) { ; } } 
+     
+     /**********************************************************************************/
+  
    } // end if 0 and 30 min
    
    /**********************************************************************************/
      
    // FERTILIZZANTE
-   if ( currHour == 22 && currMin == 0 ) {
+   if ( currHour == 22 && currMin == 30 ) {
      apriGocciolatore();
      while ( !postData(FERTI1, "1") ) { ; }
-     delay( 20000 );
+     delay( 1300 ); // con 1300 millisecondi fa 10ml
      chiudiGocciolatore();
      while ( !postData(FERTI1, "0") ) { ; }
    }
@@ -300,19 +299,17 @@ void loop() {
    
    /**********************************************************************************/
    
-   if ( (currHour == 8 || currHour == 13 || currHour == 17 || currHour == 20 ) && (0 <= currMin && currMin <= 5) && !statusPompa) {  // Sei in orario di irrigazione
+   if (( 8 <= currHour && currHour <= 21 ) && (0 <= currMin && currMin <= 15)) {  // Sei in orario di irrigazione
       digitalWrite(pinPump1,HIGH);
       while ( !postData(POMPA1, "1") ) { ; }
       statusPompa = true;
    }
-   if ( 6 <= currMin && currMin <= 59 && statusPompa) {
+   if ( 16 <= currMin && currMin <= 59) {
       digitalWrite(pinPump1,LOW);
       while ( !postData(POMPA1, "0") ) { ; }
       statusPompa = false;
    }
    
    /**********************************************************************************/
-   
    delay( 60000 );
-   wdt_reset();
 } // end loop

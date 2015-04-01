@@ -2,7 +2,8 @@
 
 boolean getApiSmartCitizen() {
   if (client.connect(server_in, 80)) {
-    writeText("SmartCitizen: ","connected");
+    Serial.print("SmartCitizen: ");
+    Serial.println("connected");
    
     client.println("GET /v0.0.1/26515ecad271367264ff71ee4c2e4fb3f24191bb/lastpost.json HTTP/1.1");
     client.println("Host: api.smartcitizen.me");
@@ -20,13 +21,15 @@ boolean getApiSmartCitizen() {
   results[index]=0;
   
   if (!client.connected()) {
-    writeText("SmartCitizen: ","disconnecting");
+    Serial.print("SmartCitizen: ");
+    Serial.println("disconnected");
+    
     client.stop();
     startData=false; index = 0;
     StaticJsonBuffer<550> jsonBuffer;
     JsonObject& root = jsonBuffer.parseObject(results);
     if (!root.success()) {
-      writeText("parseObject: ","failed");
+      Serial.println("parseObject: failed");
       return true;
     }
     //timestamp = root["devices"][0]["posts"]["timestamp"];
@@ -50,8 +53,12 @@ boolean postData( const char* id, char* value) {
   
   if (client.connect(server_out, 80)) {
     String post = "{\"sensorId\":\""; post += id; post += "\",\"value\":\""; post += value; post += "\"}";
-    
-    writeText(id,value);
+    /*
+    Serial.println("Id: ");
+    Serial.println(id);
+    Serial.println(" Val: ");
+    Serial.println(value);
+    */
     id = "";
     value ="";
     
@@ -71,9 +78,7 @@ boolean postData( const char* id, char* value) {
   if (client.available())  {
     while (client.connected()) {
       char c = client.read();
-      #ifdef DEBUG2
-         Serial.print( c );
-      #endif
+      //Serial.print( c );
       /*
       if( c == 'H'  ){ if(startData==false){ startData=true; } }
       if(startData==true){ results[index] = c; index++; }
@@ -107,19 +112,15 @@ void getTime() {
     const unsigned long seventyYears = 2208988800UL;     
     unsigned long epoch = secsSince1900 - seventyYears;  
     
-    #ifdef DEBUG2
-       Serial.print("Seconds since Jan 1 1900 = " );
-       Serial.println(secsSince1900);               
-       Serial.print("Unix time = ");
-    #endif
+    Serial.print("Seconds since Jan 1 1900 = " );
+    Serial.println(secsSince1900);               
+    Serial.print("Unix time = ");
     
     getHour( epoch );                               
     getMinute( epoch );                               
     getSecond( epoch );
 
-    #ifdef DEBUG
-       Serial.print("Ora Corrente: "); Serial.print( currHour ); Serial.print(":"); Serial.print( currMin ); Serial.print(":"); Serial.println( currSec );
-    #endif    
+    Serial.print("Ora Corrente: "); Serial.print( currHour ); Serial.print(":"); Serial.print( currMin ); Serial.print(":"); Serial.println( currSec );
   }
 }
 
@@ -137,7 +138,8 @@ void getSecond( unsigned long epoch ) { currSec = (epoch % 60); }
 
 /**********************************************************************************/
 
-unsigned long sendNTPpacket(IPAddress& address)
+//unsigned long sendNTPpacket(IPAddress& address)
+unsigned long sendNTPpacket(char* address)
 {
   memset(packetBuffer, 0, NTP_PACKET_SIZE); 
   packetBuffer[0] = 0b11100011;   // LI, Version, Mode
@@ -209,9 +211,8 @@ void getPh() {
       pHValue = 3.5*voltage+Offset;
   }
   
-  sprintf(lcdBuffer1,  "%s: %03dv", "Volt", voltage); 
-  sprintf(lcdBuffer2,  "%s: %f", "pH value", pHValue); 
-  writeText( lcdBuffer1,lcdBuffer2 );
+  Serial.print("Volt: "); Serial.println(voltage); 
+  Serial.print("Ph:   "); Serial.println(pHValue); 
 }
 
 /**********************************************************************************/
@@ -258,10 +259,8 @@ float readEC( byte isens ) {
     //  calcolo CS secondo i parametri di taratura
     if( RS[isens] < 0.5) { CS[isens] = 1300; } else{ CS[isens] = A[isens]*pow(RS[isens],B[isens]); }          
   }
-    
-  sprintf(lcdBuffer1,  "%d: G:%02d V1:%02d V2:%02d", isens, VSG, V1, V2); 
-  sprintf(lcdBuffer2,  "%d: RS:%02d CS:%02d", isens, RS, CS); 
-  writeText( lcdBuffer1,lcdBuffer2 ); 
+  
+  Serial.print( "EC: " ); Serial.println( CS[isens] ); 
   
   return CS[isens];
 }
@@ -285,24 +284,6 @@ void chiudiGocciolatore() {
    }
    delay( 100 );
    analogWrite(pinFert1,0);
-}
-
-/**********************************************************************************/
-
-void writeText( String text1, String text2 ) {
-  /*
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print(text1);
-  lcd.setCursor(0, 1);
-  lcd.print(text2);
-  */
-  
-  #ifdef DEBUG
-    Serial.print(text1);
-    Serial.println(text2);
-  #endif
-  
 }
 
 /**********************************************************************************/
