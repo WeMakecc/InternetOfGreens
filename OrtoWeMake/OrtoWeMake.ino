@@ -9,7 +9,7 @@
 
 /**********************************************************************************/
 
-#define DEBUG
+#define DEBUG 1
 
 /**********************************************************************************/
 
@@ -139,7 +139,6 @@ void setup() {
   }
   Serial.println("");
   
-  getTime();
   if (! RTC.isrunning()) { Serial.println("RTC NOT running! RESET REQUIRED"); }
   else                   { RTC.adjust(DateTime(__DATE__, __TIME__)); }
   
@@ -173,15 +172,14 @@ void loop() {
       getTime(); 
       RTC.adjust(DateTime(now.year(), now.month(), now.day(), currHour, currMin, currSec)); 
       lastTimeSet = currHour;
+   } else {
+     currHour = now.hour();
+     currMin  = now.minute();
+     currSec  = now.second();
    }
-   /**********************************************************************************/
-   
-   currHour = now.hour();
-   currMin  = now.minute();
-   currSec  = now.second();
    
    /**********************************************************************************/
-   if ( 0 == currMin && currMin == 30 ) { // Get Data from Smart Citizen project
+   if ( 0 == currMin || currMin == 30 ) { // Get Data from Smart Citizen project
      while ( !getApiSmartCitizen() ) { ; }
      if ( results[0] == '{' ) {
 

@@ -2,9 +2,11 @@
 
 boolean getApiSmartCitizen() {
   if (client.connect(server_in, 80)) {
-    Serial.print("SmartCitizen: ");
-    Serial.println("connected");
-   
+    #ifdef DEBUG
+      Serial.print("SmartCitizen: ");
+      Serial.println("connected");
+    #endif
+    
     client.println("GET /v0.0.1/26515ecad271367264ff71ee4c2e4fb3f24191bb/lastpost.json HTTP/1.1");
     client.println("Host: api.smartcitizen.me");
     client.println("Connection: close");
@@ -21,8 +23,10 @@ boolean getApiSmartCitizen() {
   results[index]=0;
   
   if (!client.connected()) {
-    Serial.print("SmartCitizen: ");
-    Serial.println("disconnected");
+    #ifdef DEBUG
+      Serial.print("SmartCitizen: ");
+      Serial.println("disconnected");
+    #endif
     
     client.stop();
     startData=false; index = 0;
@@ -49,16 +53,16 @@ boolean getApiSmartCitizen() {
 
 boolean postData( const char* id, char* value) {
   
-  //Serial.print(" ID: " ); Serial.println( id );
-  
   if (client.connect(server_out, 80)) {
     String post = "{\"sensorId\":\""; post += id; post += "\",\"value\":\""; post += value; post += "\"}";
-    /*
-    Serial.println("Id: ");
-    Serial.println(id);
-    Serial.println(" Val: ");
-    Serial.println(value);
-    */
+
+    #ifdef DEBUG
+      Serial.print("Id: ");
+      Serial.print(id);
+      Serial.print(" Val: ");
+      Serial.println(value);
+    #endif
+    
     id = "";
     value ="";
     
@@ -78,12 +82,6 @@ boolean postData( const char* id, char* value) {
   if (client.available())  {
     while (client.connected()) {
       char c = client.read();
-      //Serial.print( c );
-      /*
-      if( c == 'H'  ){ if(startData==false){ startData=true; } }
-      if(startData==true){ results[index] = c; index++; }
-      if (c == '\n') { startData=false;  } // Termina stringa caturata
-      */
     } 
   }
   results[index]=0;
@@ -91,8 +89,6 @@ boolean postData( const char* id, char* value) {
   if (!client.connected()) {
     client.stop();
     startData=false; index = 0;
-    //Serial.print("Response Http: "); Serial.println( results );
-    //if (results != "HTTP/1.1 200 OK") { return false; }
     return true;
   }
   
@@ -112,15 +108,17 @@ void getTime() {
     const unsigned long seventyYears = 2208988800UL;     
     unsigned long epoch = secsSince1900 - seventyYears;  
     
-    Serial.print("Seconds since Jan 1 1900 = " );
-    Serial.println(secsSince1900);               
-    Serial.print("Unix time = ");
+    #ifdef DEBUG    
+      Serial.print("Seconds since Jan 1 1900 = " ); Serial.println(secsSince1900);
+    #endif
     
     getHour( epoch );                               
     getMinute( epoch );                               
     getSecond( epoch );
 
-    Serial.print("Ora Corrente: "); Serial.print( currHour ); Serial.print(":"); Serial.print( currMin ); Serial.print(":"); Serial.println( currSec );
+    #ifdef DEBUG
+      Serial.print("Ora Corrente: "); Serial.print( currHour ); Serial.print(":"); Serial.print( currMin ); Serial.print(":"); Serial.println( currSec );
+    #endif
   }
 }
 
@@ -211,8 +209,10 @@ void getPh() {
       pHValue = 3.5*voltage+Offset;
   }
   
-  Serial.print("Volt: "); Serial.println(voltage); 
-  Serial.print("Ph:   "); Serial.println(pHValue); 
+  #ifdef DEBUG
+    Serial.print("Volt: "); Serial.println(voltage); 
+    Serial.print("Ph:   "); Serial.println(pHValue); 
+  #endif
 }
 
 /**********************************************************************************/
@@ -260,7 +260,9 @@ float readEC( byte isens ) {
     if( RS[isens] < 0.5) { CS[isens] = 1300; } else{ CS[isens] = A[isens]*pow(RS[isens],B[isens]); }          
   }
   
-  Serial.print( "EC: " ); Serial.println( CS[isens] ); 
+  #ifdef DEBUG
+    Serial.print( "EC: " ); Serial.println( CS[isens] ); 
+  #endif
   
   return CS[isens];
 }
