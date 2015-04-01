@@ -168,7 +168,7 @@ void loop() {
   Serial.println(lcdBuffer2);
   
   /**********************************************************************************/
-  if ( lastTimeSet != currHour ) { 
+  if ( lastTimeSet != currHour && currMin == 15) { 
       getTime(); 
       RTC.adjust(DateTime(now.year(), now.month(), now.day(), currHour, currMin, currSec)); 
       lastTimeSet = currHour;
