@@ -61,6 +61,7 @@ const char*  BATTE1= "5509b3d74ca0f61a7c9ced77"; // Voltaggio batteria (SmartCit
 /**********************************************************************************/
 
 unsigned int localPort = 8888;
+byte timeZone = 1;
 
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 char server_in[]  = "api.smartcitizen.me";    // name address for Google (using DNS)
@@ -142,6 +143,12 @@ void setup() {
   if (! RTC.isrunning()) { Serial.println("RTC NOT running! RESET REQUIRED"); }
   else                   { RTC.adjust(DateTime(__DATE__, __TIME__)); }
   
+  DateTime now = RTC.now();
+  LegalTime(RTC.now());
+  getTime(); 
+  RTC.adjust(DateTime(now.year(), now.month(), now.day(), currHour, currMin, currSec)); 
+  lastTimeSet = currHour;
+  
   pinMode(pinLamp1,OUTPUT);
   pinMode(pinLamp2,OUTPUT);
   pinMode(pinPump1,OUTPUT);
@@ -164,11 +171,12 @@ void loop() {
   DateTime now = RTC.now();
   Serial.println("\n---------------");
   
-  sprintf(lcdBuffer2,  "Ora: %02d:%02d:%02d", currHour, currMin, currSec); 
+  sprintf(lcdBuffer2,  "Ora: %02d:%02d:%02d - %d", currHour, currMin, currSec, now.dayOfWeek()); 
   Serial.println(lcdBuffer2);
   
   /**********************************************************************************/
   if ( lastTimeSet != currHour && currMin == 15) { 
+      LegalTime(RTC.now());
       getTime(); 
       RTC.adjust(DateTime(now.year(), now.month(), now.day(), currHour, currMin, currSec)); 
       lastTimeSet = currHour;
@@ -299,13 +307,17 @@ void loop() {
    
    if (( 8 <= currHour && currHour <= 21 ) && (0 <= currMin && currMin <= 15)) {  // Sei in orario di irrigazione
       digitalWrite(pinPump1,HIGH);
-      while ( !postData(POMPA1, "1") ) { ; }
-      statusPompa = true;
+      if ( !statusPompa ) {
+        while ( !postData(POMPA1, "1") ) { ; }
+        statusPompa = true;
+      }
    }
    if ( 16 <= currMin && currMin <= 59) {
       digitalWrite(pinPump1,LOW);
-      while ( !postData(POMPA1, "0") ) { ; }
-      statusPompa = false;
+      if ( statusPompa ) {
+        while ( !postData(POMPA1, "0") ) { ; }
+        statusPompa = false;
+      }
    }
    
    /**********************************************************************************/

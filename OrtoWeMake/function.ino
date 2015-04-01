@@ -124,7 +124,7 @@ void getTime() {
 
 /**********************************************************************************/
 
-void getHour( unsigned long epoch ) { currHour = (((epoch  % 86400L) / 3600)+1); }   
+void getHour( unsigned long epoch ) { currHour = (((epoch  % 86400L) / 3600) + timeZone); }   
 
 /**********************************************************************************/
 
@@ -286,6 +286,37 @@ void chiudiGocciolatore() {
    }
    delay( 100 );
    analogWrite(pinFert1,0);
+}
+
+/**********************************************************************************/
+
+void LegalTime(DateTime now)
+{
+    char cFlag = '\0';
+    const byte iDayW = now.dayOfWeek();
+    const byte iDay  = now.day();
+    const byte iMonth= now.month();
+    const byte iHour = now.hour();
+    
+    if (iMonth == 10) {
+      if (iDayW == 0) {
+          if (((iDay + 7) > 31) && (iHour >= 3)) { timeZone = 1; }
+      } else {
+        if ((iDay + (7 - iDayW))> 31) { timeZone = 1; }
+        else { timeZone = 2; }
+      }
+    }
+    
+    if (iMonth == 3) {
+      if (iDayW == 0) {
+        if (((iDay + 7) > 31) && (iHour >= 2)) { timeZone = 2; }
+      } else {
+        if((iDay + (7 - iDayW))> 31) { cFlag = 'L'; } else { timeZone = 1; }
+      }
+    }
+    
+    if(iMonth >= 4 && iMonth <= 9) { timeZone = 2; }
+    if((iMonth >= 1 && iMonth <= 2) || (iMonth >= 11 && iMonth <= 12)) { timeZone = 1; }
 }
 
 /**********************************************************************************/
