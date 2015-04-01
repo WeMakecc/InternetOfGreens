@@ -290,9 +290,8 @@ void chiudiGocciolatore() {
 
 /**********************************************************************************/
 
-void LegalTime(DateTime now)
-{
-    char cFlag = '\0';
+byte LegalTime(DateTime now) {
+          byte cFlag = 0;
     const byte iDayW = now.dayOfWeek();
     const byte iDay  = now.day();
     const byte iMonth= now.month();
@@ -300,23 +299,25 @@ void LegalTime(DateTime now)
     
     if (iMonth == 10) {
       if (iDayW == 0) {
-          if (((iDay + 7) > 31) && (iHour >= 3)) { timeZone = 1; }
+          if (((iDay + 7) > 31) && (iHour >= 3)) { cFlag = 0; }
       } else {
-        if ((iDay + (7 - iDayW))> 31) { timeZone = 1; }
-        else { timeZone = 2; }
+        if ((iDay + (7 - iDayW))> 31) { cFlag = 0; }
+        else { cFlag = 1; }
       }
     }
     
     if (iMonth == 3) {
       if (iDayW == 0) {
-        if (((iDay + 7) > 31) && (iHour >= 2)) { timeZone = 2; }
+        if (((iDay + 7) > 31) && (iHour >= 2)) { cFlag = 1; }
       } else {
-        if((iDay + (7 - iDayW))> 31) { cFlag = 'L'; } else { timeZone = 1; }
+        if((iDay + (7 - iDayW))> 31) { cFlag = 1; } else { cFlag = 0; }
       }
     }
     
-    if(iMonth >= 4 && iMonth <= 9) { timeZone = 2; }
-    if((iMonth >= 1 && iMonth <= 2) || (iMonth >= 11 && iMonth <= 12)) { timeZone = 1; }
+    if(iMonth >= 4 && iMonth <= 9) { cFlag = 1; }
+    if((iMonth >= 1 && iMonth <= 2) || (iMonth >= 11 && iMonth <= 12)) { cFlag = 0; }
+    
+    return cFlag;
 }
 
 /**********************************************************************************/

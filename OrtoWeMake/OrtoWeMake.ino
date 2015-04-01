@@ -144,7 +144,6 @@ void setup() {
   else                   { RTC.adjust(DateTime(__DATE__, __TIME__)); }
   
   DateTime now = RTC.now();
-  LegalTime(RTC.now());
   getTime(); 
   RTC.adjust(DateTime(now.year(), now.month(), now.day(), currHour, currMin, currSec)); 
   lastTimeSet = currHour;
@@ -171,12 +170,11 @@ void loop() {
   DateTime now = RTC.now();
   Serial.println("\n---------------");
   
-  sprintf(lcdBuffer2,  "Ora: %02d:%02d:%02d - %d", currHour, currMin, currSec, now.dayOfWeek()); 
+  sprintf(lcdBuffer2,  "Ora: %02d:%02d:%02d DayOfWeek: %d", (currHour+LegalTime(RTC.now())), currMin, currSec, now.dayOfWeek()); 
   Serial.println(lcdBuffer2);
   
   /**********************************************************************************/
   if ( lastTimeSet != currHour && currMin == 15) { 
-      LegalTime(RTC.now());
       getTime(); 
       RTC.adjust(DateTime(now.year(), now.month(), now.day(), currHour, currMin, currSec)); 
       lastTimeSet = currHour;
