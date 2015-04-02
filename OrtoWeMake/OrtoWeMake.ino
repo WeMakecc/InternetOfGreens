@@ -220,15 +220,15 @@ void loop() {
      /**********************************************************************************/
   
      digitalWrite(pinEC1[1],HIGH);
-     float voltageEC = analogRead(pinEC2[1]) * (5.0 / 1023.0);
      if ( analogRead(pinEC2[1] > 512 ) { while ( !postData(ACLEV1, "1") ) { ; } }
-     else                              {  while ( !postData(ACLEV1, "0") ) { ; } } 
+     else                              { while ( !postData(ACLEV1, "0") ) { ; } } 
      
      /**********************************************************************************/
   
    } // end if 0 and 30 min
    
   /**********************************************************************************/
+
   if (( currHour == 22 || currHour == 23 || currHour == 6 || currHour == 7 ) && currMin == 20 ) {
      float CS1 = readEC(0);
      if (CS1 < 0)   { CS1 = 0; }
@@ -246,6 +246,7 @@ void loop() {
      while ( !postData(SENEC9, strBuffer) ) { ; }
      while ( !postData(SENEC0, strBuffer) ) { ; }
    }
+
    /**********************************************************************************/
      
    // FERTILIZZANTE
