@@ -216,42 +216,36 @@ void loop() {
         strBuffer=""; dtostrf(pHValue,2,2,strBuffer);
         while ( !postData(PHMET1, strBuffer) ) { ; }
       }
-
-     /**********************************************************************************/
-
-     float CS1 = readEC(0);
-     if (CS1 > 0 && CS1 < 1.3) { 
-       strBuffer=""; dtostrf(CS1,1,1,strBuffer);  
-       
-       while ( !postData(SENEC1, strBuffer) ) { ; }
-       while ( !postData(SENEC2, strBuffer) ) { ; }
-       while ( !postData(SENEC3, strBuffer) ) { ; }
-       while ( !postData(SENEC4, strBuffer) ) { ; }
-       while ( !postData(SENEC5, strBuffer) ) { ; }
-     }
-     
-     float CS2 = readEC(1);
-     if (CS2 > 0 && CS2 < 1.3) { 
-       strBuffer=""; dtostrf(CS2,1,1,strBuffer);  
-       
-       while ( !postData(SENEC6, strBuffer) ) { ; }
-       while ( !postData(SENEC7, strBuffer) ) { ; }
-       while ( !postData(SENEC8, strBuffer) ) { ; }
-       while ( !postData(SENEC9, strBuffer) ) { ; }
-       while ( !postData(SENEC0, strBuffer) ) { ; }
-     }
      
      /**********************************************************************************/
   
-     digitalWrite(pinEC1[0],HIGH);
-     float voltageEC = analogRead(14) * (5.0 / 1023.0);
-     if ( voltageEC > 2 ) { while ( !postData(ACLEV1, "1") ) { ; } }
-    else                  { while ( !postData(ACLEV1, "0") ) { ; } } 
+     digitalWrite(pinEC1[1],HIGH);
+     float voltageEC = analogRead(pinEC2[1]) * (5.0 / 1023.0);
+     if ( analogRead(pinEC2[1] > 512 ) { while ( !postData(ACLEV1, "1") ) { ; } }
+     else                              {  while ( !postData(ACLEV1, "0") ) { ; } } 
      
      /**********************************************************************************/
   
    } // end if 0 and 30 min
    
+  /**********************************************************************************/
+  if (( currHour == 22 || currHour == 23 || currHour == 6 || currHour == 7 ) && currMin == 20 ) {
+     float CS1 = readEC(0);
+     if (CS1 < 0)   { CS1 = 0; }
+     if (CS1 > 1.3) { CS1 = 1.3; } 
+     strBuffer=""; dtostrf(CS1,1,1,strBuffer);  
+       
+     while ( !postData(SENEC1, strBuffer) ) { ; }
+     while ( !postData(SENEC2, strBuffer) ) { ; }
+     while ( !postData(SENEC3, strBuffer) ) { ; }
+     while ( !postData(SENEC4, strBuffer) ) { ; }
+     while ( !postData(SENEC5, strBuffer) ) { ; }
+     while ( !postData(SENEC6, strBuffer) ) { ; }
+     while ( !postData(SENEC7, strBuffer) ) { ; }
+     while ( !postData(SENEC8, strBuffer) ) { ; }
+     while ( !postData(SENEC9, strBuffer) ) { ; }
+     while ( !postData(SENEC0, strBuffer) ) { ; }
+   }
    /**********************************************************************************/
      
    // FERTILIZZANTE
