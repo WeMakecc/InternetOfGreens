@@ -216,6 +216,7 @@ void loop() {
         strBuffer=""; dtostrf(pHValue,2,2,strBuffer);
         while ( !postData(PHMET1, strBuffer) ) { ; }
       }
+<<<<<<< HEAD
      
      /**********************************************************************************/
   
@@ -223,6 +224,14 @@ void loop() {
      float voltageEC = analogRead(pinEC2[1]) * (5.0 / 1023.0);
      if ( analogRead(pinEC2[1] > 512 ) { while ( !postData(ACLEV1, "1") ) { ; } }
      else                              {  while ( !postData(ACLEV1, "0") ) { ; } } 
+=======
+
+     /**********************************************************************************/
+
+     digitalWrite(pinEC1[1],HIGH);
+     if ( analogRead(pinEC2[1]) > 512 ) { while ( !postData(ACLEV1, "1") ) { ; } }
+     else                              { while ( !postData(ACLEV1, "0") ) { ; } } 
+>>>>>>> Bug fixing
      
      /**********************************************************************************/
   
@@ -245,6 +254,26 @@ void loop() {
      while ( !postData(SENEC8, strBuffer) ) { ; }
      while ( !postData(SENEC9, strBuffer) ) { ; }
      while ( !postData(SENEC0, strBuffer) ) { ; }
+   }
+   /**********************************************************************************/
+   if ( ( currHour == 22 || currHour == 23 || currHour == 06 || currHour == 07 ) && currMin == 00 ) {
+
+     float CS1 = readEC(0);
+     if (CS1 < 0) { CS1 = 0; }
+     if (CS1 > 1.3) { CS1 = 1.3; }
+     strBuffer=""; dtostrf(CS1,1,1,strBuffer);  
+     
+     while ( !postData(SENEC1, strBuffer) ) { ; }
+     while ( !postData(SENEC2, strBuffer) ) { ; }
+     while ( !postData(SENEC3, strBuffer) ) { ; }
+     while ( !postData(SENEC4, strBuffer) ) { ; }
+     while ( !postData(SENEC5, strBuffer) ) { ; }
+     while ( !postData(SENEC6, strBuffer) ) { ; }
+     while ( !postData(SENEC7, strBuffer) ) { ; }
+     while ( !postData(SENEC8, strBuffer) ) { ; }
+     while ( !postData(SENEC9, strBuffer) ) { ; }
+     while ( !postData(SENEC0, strBuffer) ) { ; }
+          
    }
    /**********************************************************************************/
      
