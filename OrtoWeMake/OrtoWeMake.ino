@@ -229,7 +229,7 @@ void loop() {
    
   /**********************************************************************************/
 
-  if (( currHour == 22 || currHour == 23 || currHour == 6 || currHour == 7 ) && currMin == 20 ) {
+  if ( ((20 <= currHour && currHour <= 23)  || (5 <= currHour && currHour <= 7)) && currMin == 20 ) {
      float CS1 = readEC(0);
      if (CS1 < 0)   { CS1 = 0; }
      if (CS1 > 1.3) { CS1 = 1.3; } 
