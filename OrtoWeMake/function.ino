@@ -51,20 +51,20 @@ boolean getApiSmartCitizen() {
 
 /**********************************************************************************/
 
-boolean postData( const char* id, char* value) {
+boolean postData( const char* idToSend, char* valueToSend) {
   
   if (client.connect(server_out, 80)) {
-    String post = "{\"sensorId\":\""; post += id; post += "\",\"value\":\""; post += value; post += "\"}";
+    String post = "{\"sensorId\":\""; post += idToSend; post += "\",\"value\":\""; post += valueToSend; post += "\"}";
 
     #ifdef DEBUG
       Serial.print("Id: ");
-      Serial.print(id);
+      Serial.print(idToSend);
       Serial.print(" Val: ");
-      Serial.println(value);
+      Serial.println(valueToSend);
     #endif
     
-    id = "";
-    value ="";
+    idToSend = "";
+    valueToSend ="";
     
     client.println("POST /iog/samples HTTP/1.1");
     client.println("Host: iot.enter.it");
@@ -76,6 +76,8 @@ boolean postData( const char* id, char* value) {
     client.println("Connection: close");
     client.println();
     client.print(post);
+    
+    post = "";
   }
 
   index = 0;
@@ -88,7 +90,8 @@ boolean postData( const char* id, char* value) {
   
   if (!client.connected()) {
     client.stop();
-    startData=false; index = 0;
+    startData=false;
+    index = 0;
     return true;
   }
   
