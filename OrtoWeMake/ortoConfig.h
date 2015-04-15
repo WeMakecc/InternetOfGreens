@@ -68,8 +68,7 @@ boolean startData = false;
 char* strBuffer;
 
 //const char* timestamp;
-double temp, hum, co, no2, light;
-int noise, batt;
+double temp, hum, co, no2, light, noise, batt;
   
 IPAddress ip(192, 168, 2, 249);
 EthernetClient client;

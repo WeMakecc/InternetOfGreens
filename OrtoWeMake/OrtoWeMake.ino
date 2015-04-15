@@ -86,14 +86,19 @@ void loop() {
 
       // Mapping Value
       co = map(((int)((co/100) + 0.5)*100),1,1000,300,1500);
-      no2 = map(((int)(no2/100 + 0.5)*100),0,500,0,1);
+      no2 = (no2/500);
       noise = map((((int)(noise/10)+0.5)*10),0,100,10,100);
       batt = map(batt,0,100,0,5);
 
-      sprintf(lcdBuffer1,  "%02d° %03d% %04dCo", temp, hum, co); 
-      sprintf(lcdBuffer2,  "%03dn %03dl %1dv %01dNo", noise, light, batt, no2); 
-      Serial.println(lcdBuffer1);
-      Serial.println(lcdBuffer2);
+      /*
+      Serial.print( "Temp: " ); Serial.print(temp);  Serial.println(" ");
+      Serial.print( "Hum:  " ); Serial.print(hum);   Serial.println(" %");
+      Serial.print( "Co: "   ); Serial.print(co);    Serial.println(" Co");
+      Serial.print( "No2: " );  Serial.print(no2);   Serial.println(" No");
+      Serial.print( "Nois: " ); Serial.print(noise); Serial.println("");
+      Serial.print( "Luce: " ); Serial.print(light); Serial.println("");
+      Serial.print( "Batt: " ); Serial.print(batt);  Serial.println("v");
+      */
       
       strBuffer=""; dtostrf(temp,2,0,strBuffer);  while ( !postData(TEMPC1, strBuffer) ) { ; }
       strBuffer=""; dtostrf(hum,2,0,strBuffer);   while ( !postData(HUMID1, strBuffer) ) { ; }
@@ -115,8 +120,9 @@ void loop() {
      /**********************************************************************************/
   
      digitalWrite(pinEC1[1],HIGH);
-     if ( analogRead(pinEC2[1]) > 512 ) { while ( !postData(ACLEV1, "1") ) { ; } }
-     else                               { while ( !postData(ACLEV1, "0") ) { ; } } 
+     if ( analogRead(pinEC2[1]) > 512 ) { while ( !postData(ACLEV1, "0") ) { ; } }
+     else                               { while ( !postData(ACLEV1, "1") ) { ; } } 
+     digitalWrite(pinEC1[1],LOW);
      
      /**********************************************************************************/
   
@@ -194,15 +200,16 @@ void loop() {
    /**********************************************************************************/
    
    if (( 8 <= currHour && currHour <= 21 ) && (0 <= currMin && currMin <= 15)) {  // Sei in orario di irrigazione
-      digitalWrite(pinPump1,HIGH);
       if ( !statusPompa ) {
+        digitalWrite(pinPump1,HIGH); delay( 100 );
+        digitalWrite(pinPump2,HIGH); delay( 100 );
         while ( !postData(POMPA1, "1") ) { ; }
         statusPompa = true;
       }
-   }
-   if ( 16 <= currMin && currMin <= 59) {
-      digitalWrite(pinPump1,LOW);
+   } else {
       if ( statusPompa ) {
+        digitalWrite(pinPump1,LOW); delay( 100 );
+        digitalWrite(pinPump2,LOW); delay( 100 );
         while ( !postData(POMPA1, "0") ) { ; }
         statusPompa = false;
       }

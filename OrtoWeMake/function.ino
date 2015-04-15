@@ -57,10 +57,7 @@ boolean postData( const char* idToSend, char* valueToSend) {
     String post = "{\"sensorId\":\""; post += idToSend; post += "\",\"value\":\""; post += valueToSend; post += "\"}";
 
     #ifdef DEBUG
-      Serial.print("Id: ");
-      Serial.print(idToSend);
-      Serial.print(" Val: ");
-      Serial.println(valueToSend);
+      Serial.print("Id: "); Serial.print(idToSend); Serial.print(" Val: "); Serial.println(valueToSend);
     #endif
     
     idToSend = "";
