@@ -39,7 +39,7 @@ void setup() {
   DateTime now = RTC.now();
   getTime(); 
   RTC.adjust(DateTime(now.year(), now.month(), now.day(), currHour, currMin, currSec)); 
-  lastTimeSet = currHour;
+  // lastTimeSet = currHour;
   
   pinMode(pinLamp1,OUTPUT);
   pinMode(pinLamp2,OUTPUT);
