@@ -7,6 +7,7 @@
 #include <Wire.h>
 #include "RTClib.h"
 #include "ortoConfig.h"
+#include <avr/wdt.h>
 
 /**********************************************************************************/
 
@@ -16,6 +17,9 @@ RTC_DS1307 RTC;
 
 void setup() {
   Serial.begin(9600);
+  while (!Serial) { ; }
+  
+  wdt_disable();
   
   if (Ethernet.begin(mac) == 0) {
     Serial.println("Failed to configure Ethernet using DHCP");
@@ -65,6 +69,14 @@ void loop() {
   
   sprintf(lcdBuffer2,  "Ora: %02d:%02d:%02d DayOfWeek: %d", (currHour+LegalTime(RTC.now())), currMin, currSec, now.dayOfWeek()); 
   Serial.println(lcdBuffer2);
+  
+  /**********************************************************************************/
+  
+  if ((currHour == 9 || currHour == 13 || currHour == 18 || currHour == 19) && currMin == 8) { 
+    delay( 30000 ); 
+    wdt_enable(WDTO_8S); 
+    delay( 10000 );
+  }
   
   /**********************************************************************************/
   
