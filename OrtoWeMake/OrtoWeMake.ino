@@ -17,7 +17,7 @@ RTC_DS1307 RTC;
 
 void setup() {
   Serial.begin(9600);
-  while (!Serial) { ; }
+  for (int t=0; t<8000; t++) { delay(1); }
   
   wdt_disable();
   
@@ -72,7 +72,7 @@ void loop() {
   
   /**********************************************************************************/
   
-  if ((currHour == 9 || currHour == 13 || currHour == 18 || currHour == 19) && currMin == 8) { 
+  if ((currHour == 9 || currHour == 13 || currHour == 19) && currMin == 8) { 
     delay( 30000 ); 
     wdt_enable(WDTO_8S); 
     delay( 10000 );
