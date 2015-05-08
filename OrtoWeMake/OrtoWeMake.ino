@@ -163,13 +163,16 @@ void loop() {
    /**********************************************************************************/
      
    // FERTILIZZANTE
-   if ( currHour == 22 && currMin == 30 ) {
+   if ( currHour == 22 && currMin == 30  && statusFert == false) {
      apriGocciolatore();
      while ( !postData(FERTI1, "1") ) { ; }
      delay( 1300 ); // con 1300 millisecondi fa 10ml
      chiudiGocciolatore();
      while ( !postData(FERTI1, "0") ) { ; }
+     
+     statusFert = true;
    }
+   if ( currHour == 22 && currMin == 35  && statusFert == true) { statusFert = false; }
 
    /**********************************************************************************/
 

@@ -81,6 +81,8 @@ static float pHValue = 0;
 
 boolean statusLight = false;
 boolean statusPompa = false;
+boolean statusFert  = false;
+
 const float ECValRif = 0.9;
 byte lastTimeSet = 0;
 char lcdBuffer1[16] = "";
